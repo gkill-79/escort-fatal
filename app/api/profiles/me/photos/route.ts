@@ -15,6 +15,11 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const isPremium = formData.get("isPremium") === "true";
+    const unlockPriceRaw = formData.get("unlockPriceCredits");
+    const unlockPriceCredits = isPremium
+      ? Math.max(1, Number.parseInt(String(unlockPriceRaw || "1"), 10) || 1)
+      : null;
 
     if (!file) {
       return NextResponse.json({ message: "Aucun fichier fourni" }, { status: 400 });
@@ -70,6 +75,8 @@ export async function POST(req: Request) {
         order: nextOrder,
         isPrimary: isPrimary,
         isApproved: true, // Assuming auto-approve for now
+        isPremium,
+        unlockPriceCredits,
       }
     });
 

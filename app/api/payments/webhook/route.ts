@@ -48,11 +48,19 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
-    if (product === "CHAT_CREDITS_10" || product === "CHAT_CREDITS_50") {
+    if (
+      product === "CHAT_CREDITS_10" ||
+      product === "CHAT_CREDITS_50" ||
+      product === "CREDIT_PACK_100" ||
+      product === "CREDIT_PACK_300"
+    ) {
       const credits = prod.credits ?? 0;
       await prisma.user.update({
         where: { id: userId },
-        data: { chatCredits: { increment: credits } },
+        data: {
+          credits: { increment: credits },
+          chatCredits: { increment: credits }, // rétrocompatibilité modules chat existants
+        },
       });
     } else if (profileId) {
       const duration = prod.duration ?? 30;

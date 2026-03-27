@@ -111,4 +111,3 @@ docker-compose -f docker-compose.prod.yml up -d
 ## Licence
 
 Propriétaire — Tous droits réservés.
-# escort-fatal

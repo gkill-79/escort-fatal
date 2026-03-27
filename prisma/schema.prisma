@@ -52,6 +52,8 @@ enum PaymentProduct {
   TOP_GIRL_30D
   CHAT_CREDITS_10
   CHAT_CREDITS_50
+  CREDIT_PACK_100
+  CREDIT_PACK_300
   EXCLUSIVE_30D
 }
 
@@ -92,6 +94,7 @@ model User {
   resetToken       String?
   resetTokenExpiresAt DateTime?
   chatCredits      Int       @default(0)
+  credits          Int       @default(0)
   lastSeenAt       DateTime  @default(now())
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -248,6 +251,8 @@ model ProfilePhoto {
   blurUrl      String?
   isPrimary    Boolean  @default(false)
   isApproved   Boolean  @default(false)
+  isPremium    Boolean  @default(false)
+  unlockPriceCredits Int?
   order        Int      @default(0)
   ratingAvg    Float    @default(0)
   ratingCount  Int      @default(0)

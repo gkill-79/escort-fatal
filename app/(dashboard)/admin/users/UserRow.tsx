@@ -2,33 +2,63 @@
 
 import { useState, useTransition } from "react";
 import { formatTimeAgo } from "@/lib/utils";
-import { Ban, CheckCircle, Coins, Trash2, ShieldAlert } from "lucide-react";
+import { Ban, CheckCircle, Coins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toggleUserBan, updateChatCredits, deleteUser } from "../actions";
+import { toast } from "react-hot-toast";
+import type { User } from "@prisma/client";
 
-export default function UserRow({ user }: { user: any }) {
+type UserRowData = Pick<
+  User,
+  "id" | "username" | "email" | "role" | "isActive" | "chatCredits" | "createdAt"
+>;
+
+function getActionError(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "Une erreur est survenue pendant l'action admin.";
+}
+
+export default function UserRow({ user }: { user: UserRowData }) {
   const [isPending, startTransition] = useTransition();
   const [credits, setCredits] = useState(user.chatCredits.toString());
 
   const handleBanToggle = () => {
     startTransition(async () => {
-      await toggleUserBan(user.id, user.isActive);
+      try {
+        await toggleUserBan(user.id, user.isActive);
+        toast.success(user.isActive ? "Compte suspendu." : "Compte réactivé.");
+      } catch (error: unknown) {
+        toast.error(getActionError(error));
+      }
     });
   };
 
   const handleUpdateCredits = () => {
-    const val = parseInt(credits, 10);
+    const val = Math.max(0, parseInt(credits, 10));
     if (!isNaN(val)) {
       startTransition(async () => {
-        await updateChatCredits(user.id, val);
+        try {
+          await updateChatCredits(user.id, val);
+          setCredits(val.toString());
+          toast.success("Crédits mis à jour.");
+        } catch (error: unknown) {
+          toast.error(getActionError(error));
+        }
       });
+    } else {
+      toast.error("Veuillez entrer un nombre valide.");
     }
   };
 
   const handleDelete = () => {
     if (confirm("Êtes-vous sûr de vouloir supprimer définitivement ce compte ?")) {
       startTransition(async () => {
-        await deleteUser(user.id);
+        try {
+          await deleteUser(user.id);
+          toast.success("Compte supprimé.");
+        } catch (error: unknown) {
+          toast.error(getActionError(error));
+        }
       });
     }
   };

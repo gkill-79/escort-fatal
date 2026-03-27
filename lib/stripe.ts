@@ -12,6 +12,8 @@ export type ProductKey =
   | "TOP_GIRL_30D"
   | "CHAT_CREDITS_10"
   | "CHAT_CREDITS_50"
+  | "CREDIT_PACK_100"
+  | "CREDIT_PACK_300"
   | "EXCLUSIVE_30D";
 
 export const PRODUCTS: Record<
@@ -25,6 +27,8 @@ export const PRODUCTS: Record<
   EXCLUSIVE_30D:    { duration: 30, amount: 14990,name: "Statut Exclusif — 30 Jours" },      // 149.90€
   CHAT_CREDITS_10:  { credits: 10,  amount: 490,  name: "10 Crédits Temps-Réel" },           // 4.90€
   CHAT_CREDITS_50:  { credits: 50,  amount: 1990, name: "50 Crédits Temps-Réel" },           // 19.90€
+  CREDIT_PACK_100:  { credits: 100, amount: 1000, name: "Pack 100 Crédits" },                // 10.00€
+  CREDIT_PACK_300:  { credits: 300, amount: 2500, name: "Pack 300 Crédits" },                // 25.00€
 };
 
 export function constructWebhookEvent(

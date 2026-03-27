@@ -1,7 +1,61 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import {
+  LayoutDashboard,
+  Users,
+  ShieldAlert,
+  MessageCircleWarning,
+  LogOut,
+  ChevronLeft,
+  Images,
+  UserCheck,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { LayoutDashboard, Users, ShieldAlert, MessageCircleWarning, LogOut, ChevronLeft, Images, UserCheck } from "lucide-react";
+import { AdminNavLink } from "@/components/layouts/AdminNavLink";
+
+type NavItem = {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  iconClassName: string;
+};
+
+const moderationItems: NavItem[] = [
+  {
+    href: "/admin/comments",
+    label: "Avis en Attente",
+    Icon: MessageCircleWarning,
+    iconClassName: "text-yellow-400",
+  },
+  {
+    href: "/admin/reports",
+    label: "Signalements",
+    Icon: ShieldAlert,
+    iconClassName: "text-red-500",
+  },
+  {
+    href: "/admin/media",
+    label: "Médias",
+    Icon: Images,
+    iconClassName: "text-purple-400",
+  },
+];
+
+const accountItems: NavItem[] = [
+  {
+    href: "/admin/profiles",
+    label: "C.A.S Profils",
+    Icon: UserCheck,
+    iconClassName: "text-brand-400",
+  },
+  {
+    href: "/admin/users",
+    label: "Gérer les Comptes",
+    Icon: Users,
+    iconClassName: "text-dark-300",
+  },
+];
 
 export default async function AdminLayout({
   children,
@@ -34,38 +88,26 @@ export default async function AdminLayout({
         </div>
         
         <nav className="flex-1 p-3 space-y-1">
-          <Link href="/admin" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <LayoutDashboard className="w-5 h-5 text-blue-400" />
-            Vue d&apos;ensemble
-          </Link>
+          <AdminNavLink
+            href="/admin"
+            label="Vue d&apos;ensemble"
+            Icon={LayoutDashboard}
+            iconClassName="text-blue-400"
+          />
 
           <div className="pt-2 pb-1 px-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-dark-600">Modération</p>
           </div>
-          <Link href="/admin/comments" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <MessageCircleWarning className="w-5 h-5 text-yellow-400" />
-            Avis en Attente
-          </Link>
-          <Link href="/admin/reports" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <ShieldAlert className="w-5 h-5 text-red-500" />
-            Signalements
-          </Link>
-          <Link href="/admin/media" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <Images className="w-5 h-5 text-purple-400" />
-            Médias
-          </Link>
+          {moderationItems.map((item) => (
+            <AdminNavLink key={item.href} {...item} />
+          ))}
 
           <div className="pt-2 pb-1 px-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-dark-600">Comptes</p>
           </div>
-          <Link href="/admin/profiles" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <UserCheck className="w-5 h-5 text-brand-400" />
-            C.A.S Profils
-          </Link>
-          <Link href="/admin/users" className="flex items-center gap-3 px-3 py-3 text-dark-300 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-            <Users className="w-5 h-5 text-dark-300" />
-            Gérer les Comptes
-          </Link>
+          {accountItems.map((item) => (
+            <AdminNavLink key={item.href} {...item} />
+          ))}
         </nav>
         
         <div className="p-4 border-t border-white/5">

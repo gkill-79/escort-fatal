@@ -1,32 +1,53 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition, useRef } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { useTransition, useEffect, useState } from "react";
+import { Search, Loader2, RotateCcw } from "lucide-react";
 
 export function UsersFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
 
   const currentQ = searchParams.get("q") || "";
   const currentRole = searchParams.get("role") || "ALL";
   const currentStatus = searchParams.get("status") || "ALL";
+  const currentLimit = searchParams.get("limit") || "25";
+  const [q, setQ] = useState(currentQ);
+  const [role, setRole] = useState(currentRole);
+  const [status, setStatus] = useState(currentStatus);
 
-  function applyFilters(data: FormData) {
-    const q = (data.get("q") as string) || "";
-    const role = (data.get("role") as string) || "ALL";
-    const status = (data.get("status") as string) || "ALL";
+  useEffect(() => {
+    setQ(currentQ);
+    setRole(currentRole);
+    setStatus(currentStatus);
+  }, [currentQ, currentRole, currentStatus]);
+
+  function pushFilters(nextQ: string, nextRole: string, nextStatus: string) {
+    const normalizedQ = nextQ.trim();
 
     const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (role !== "ALL") params.set("role", role);
-    if (status !== "ALL") params.set("status", status);
+    if (normalizedQ) params.set("q", normalizedQ);
+    if (nextRole !== "ALL") params.set("role", nextRole);
+    if (nextStatus !== "ALL") params.set("status", nextStatus);
+    if (currentLimit) params.set("limit", currentLimit);
+    params.set("page", "1");
 
     startTransition(() => {
-      router.push(`/admin/users?${params.toString()}`);
+      const queryString = params.toString();
+      router.push(queryString ? `/admin/users?${queryString}` : "/admin/users");
     });
+  }
+
+  function applyFilters() {
+    pushFilters(q, role, status);
+  }
+
+  function resetFilters() {
+    setQ("");
+    setRole("ALL");
+    setStatus("ALL");
+    pushFilters("", "ALL", "ALL");
   }
 
   const roles = ["ALL", "MEMBER", "ESCORT", "ADMIN"];
@@ -34,8 +55,10 @@ export function UsersFilters() {
 
   return (
     <form
-      ref={formRef}
-      action={applyFilters}
+      onSubmit={(e) => {
+        e.preventDefault();
+        applyFilters();
+      }}
       className="bg-dark-900 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center"
     >
       {/* Search Input */}
@@ -48,63 +71,71 @@ export function UsersFilters() {
         <input
           name="q"
           type="text"
-          defaultValue={currentQ}
+          value={q}
           placeholder="Rechercher par pseudo ou email..."
           className="bg-transparent text-white text-sm w-full focus:outline-none placeholder:text-dark-500"
-          onChange={(e) => {
-            if (e.target.value === "") {
-              formRef.current?.requestSubmit();
-            }
-          }}
+          onChange={(e) => setQ(e.target.value)}
         />
       </div>
 
       {/* Role Filter */}
       <div className="flex gap-1 bg-dark-800 border border-white/10 rounded-xl p-1">
-        {roles.map((role) => (
+        {roles.map((roleOption) => (
           <button
-            key={role}
-            type="submit"
-            name="role"
-            value={role}
+            key={roleOption}
+            type="button"
+            onClick={() => setRole(roleOption)}
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-              currentRole === role
+              roleOption === role
                 ? "bg-brand-500 text-white shadow-sm"
                 : "text-dark-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            {role === "ALL" ? "Tous" : role}
+            {roleOption === "ALL" ? "Tous" : roleOption}
           </button>
         ))}
       </div>
 
       {/* Status Filter */}
       <div className="flex gap-1 bg-dark-800 border border-white/10 rounded-xl p-1">
-        {statuses.map((status) => (
+        {statuses.map((statusOption) => (
           <button
-            key={status}
-            type="submit"
-            name="status"
-            value={status}
+            key={statusOption}
+            type="button"
+            onClick={() => setStatus(statusOption)}
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-              currentStatus === status
-                ? status === "BANNED"
+              statusOption === status
+                ? statusOption === "BANNED"
                   ? "bg-red-500 text-white"
-                  : status === "ACTIVE"
+                  : statusOption === "ACTIVE"
                   ? "bg-green-600 text-white"
                   : "bg-brand-500 text-white"
                 : "text-dark-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            {status === "ALL" ? "Tous" : status === "ACTIVE" ? "Actifs" : "Bannis"}
+            {statusOption === "ALL" ? "Tous" : statusOption === "ACTIVE" ? "Actifs" : "Bannis"}
           </button>
         ))}
       </div>
 
-      {/* Submit on Enter */}
-      <button type="submit" className="sr-only" aria-hidden>
-        Rechercher
-      </button>
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="h-10 px-4 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        >
+          Appliquer
+        </button>
+        <button
+          type="button"
+          onClick={resetFilters}
+          disabled={isPending}
+          className="h-10 px-3 rounded-xl border border-white/10 text-dark-300 hover:text-white hover:bg-white/5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          title="Réinitialiser les filtres"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+      </div>
     </form>
   );
 }

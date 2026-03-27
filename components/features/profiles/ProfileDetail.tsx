@@ -30,7 +30,19 @@ export function ProfileDetail({ profile, isFollowing, currentUserId }: ProfileDe
         {/* ── Left: media + info ──────────────────────── */}
         <div className="flex-1 min-w-0 space-y-6">
 
-          <PhotoGallery photos={(profile.photos ?? []) as { id: string; url: string; thumbnailUrl?: string | null; isPrimary?: boolean }[]} />
+          <PhotoGallery
+            photos={
+              (profile.photos ?? []) as {
+                id: string;
+                url: string;
+                thumbnailUrl?: string | null;
+                isPrimary?: boolean;
+                isPremium?: boolean;
+                unlockPriceCredits?: number | null;
+                isUnlocked?: boolean;
+              }[]
+            }
+          />
 
           {profile.bio && (
             <div className="bg-dark-800/50 rounded-2xl border border-white/5 p-5">
