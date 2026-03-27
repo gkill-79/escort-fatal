@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { fetchApi } from "@/lib/api-client";
 
 const profileSettingsSchema = z.object({
   bio: z.string().max(1000, "La bio ne doit pas dépasser 1000 caractères").optional().nullable(),
@@ -76,10 +77,13 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
     setError(null);
 
     try {
-      const res = await fetch("/api/profiles/me", {
+      // Pass both userId (from defaultValues) and data
+      const res = await fetchApi("/profiles/me", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ 
+          userId: defaultValues.userId, 
+          data: data 
+        }),
       });
 
       if (!res.ok) {

@@ -8,6 +8,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import profilesRouter from "./routes/profiles";
+import profilesV2Router from "./routes/profiles_v2";
+import citiesRouter from "./routes/cities";
+import authRouter from "./routes/auth";
 
 const app = express();
 const server = createServer(app);
@@ -29,6 +32,9 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/profiles", profilesRouter);
+app.use("/v2/profiles", profilesV2Router);
+app.use("/cities", citiesRouter);
+app.use("/auth", authRouter);
 
 // --- Socket.io Logic (Moved from server/index.ts) ---
 io.on("connection", (socket) => {

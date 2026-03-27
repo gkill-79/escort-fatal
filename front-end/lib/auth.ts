@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
 
-type UserRole = "MEMBER" | "ESCORT" | "ADMIN";
+// We don't need prisma or bcrypt here anymore!
+// import { fetchApi } from "./api-client"; // This might cause issues if not absolute or if it uses env vars differently
+// Instead, I'll use a local fetch with the server-side API URL
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -22,53 +22,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Veuillez renseigner vos identifiants");
         }
 
-        const identifier = credentials.identifier as string;
-        const password = credentials.password as string;
+        try {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+          const res = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identifier: credentials.identifier,
+              password: credentials.password,
+            }),
+          });
 
-        // Find user by email or username
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [{ email: identifier }, { username: identifier }],
-          },
-        });
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Identifiants incorrects");
+          }
 
-        if (!user || !user.passwordHash) {
-          throw new Error("Identifiants incorrects");
+          const user = await res.json();
+          return user;
+        } catch (error: any) {
+          throw new Error(error.message || "Erreur de connexion au serveur");
         }
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isValid) {
-          throw new Error("Identifiants incorrects");
-        }
-
-        if (!user.isActive) {
-          throw new Error("Ce compte est désactivé");
-        }
-
-        return {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Intial sign in
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role as UserRole;
-        token.username = (user as any).username as string;
+        token.role = (user as any).role;
+        token.username = (user as any).username;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
+        session.user.role = token.role as any;
         session.user.username = token.username as string;
       }
       return session;

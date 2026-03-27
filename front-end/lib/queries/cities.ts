@@ -1,14 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 
 export async function getPopularCities(limit: number) {
   try {
-    const list = await prisma.city.findMany({
-      where: { isPopular: true },
-      take: limit,
-      orderBy: { profileCount: "desc" },
-    });
-    return list;
-  } catch {
+    return await fetchApi(`/cities/popular?limit=${limit}`);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des villes:", error);
     return [];
   }
 }

@@ -1,18 +1,17 @@
-import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Users, ShieldAlert, Euro, CheckCircle } from "lucide-react";
+import { fetchApi } from "@/lib/api-client";
 
 export default async function AdminDashboardPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/"); 
 
-  const [totalUsers, totalEscorts, pendingProfiles, revenues] = await Promise.all([
-    prisma.user.count({ where: { role: "USER" } }),
-    prisma.user.count({ where: { role: "ESCORT" } }),
-    prisma.profile.count({ where: { status: "PENDING" } }),
-    prisma.transaction.aggregate({ _sum: { amount: true } })
-  ]);
+  const stats = await fetchApi("/v2/profiles/admin/stats", {
+    headers: { "x-is-admin": "true" }
+  });
+
+  const { totalUsers, totalEscorts, pendingProfiles, totalRevenues } = stats;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -23,7 +22,7 @@ export default async function AdminDashboardPage() {
             <p className="text-slate-400">Revenus</p>
             <Euro className="w-5 h-5 text-emerald-500" />
           </div>
-          <p className="text-3xl font-bold text-white">{revenues._sum.amount || 0} €</p>
+          <p className="text-3xl font-bold text-white">{totalRevenues} €</p>
         </div>
         <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl">
           <div className="flex items-center justify-between mb-2">

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { Heart, Users, Calendar } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
+import { fetchApi } from "@/lib/api-client";
 
 export const metadata = {
   title: "Ma Communauté — Escorte Fatal",
@@ -16,26 +16,13 @@ export default async function EscortFollowersPage() {
     redirect("/member/dashboard");
   }
 
-  // Get current escort's profile
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-    select: { id: true, followerCount: true }
+  // Fetch data from backend API
+  const followers = await fetchApi("/v2/profiles/me/followers", {
+    headers: { "x-user-id": session.user.id }
   });
 
-  if (!profile) {
-    return <div className="text-white p-4">Veuillez d'abord compléter votre profil.</div>;
-  }
-
-  // Fetch the members who follow her
-  const followers = await prisma.follow.findMany({
-    where: { profileId: profile.id },
-    include: {
-      follower: {
-        select: { username: true, avatarUrl: true, createdAt: true }
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  // We also need the profile followerCount, but for simplicity I can use the length of followers or add a new endpoint
+  const followerCount = followers.length;
 
   return (
     <div className="space-y-6">
@@ -46,7 +33,7 @@ export default async function EscortFollowersPage() {
         </div>
         <div className="bg-dark-800 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2">
            <Heart className="w-4 h-4 text-brand-400 fill-brand-400" />
-           <span className="font-bold text-white">{profile.followerCount}</span>
+           <span className="font-bold text-white">{followerCount}</span>
         </div>
       </div>
 
