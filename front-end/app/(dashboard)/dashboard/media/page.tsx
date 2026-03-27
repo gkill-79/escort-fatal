@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { MediaGallery } from "@/components/features/dashboard/MediaGallery";
 
 export default async function MediaDashboardPage() {
@@ -10,18 +10,14 @@ export default async function MediaDashboardPage() {
     redirect("/login");
   }
 
-  // Fetch escort's profile
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-    include: {
-      photos: {
-        orderBy: { order: "asc" }
-      }
-    }
-  });
-
-  if (!profile) {
-    return <div>Erreur : Profil introuvable.</div>;
+  // Fetch photos from API
+  let photos: any[] = [];
+  try {
+    photos = await fetchApi("/v2/profiles/me/photos", {
+      headers: { "x-user-id": session.user.id }
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard photos:", error);
   }
 
   return (
@@ -32,7 +28,7 @@ export default async function MediaDashboardPage() {
       </div>
 
       <div className="bg-dark-800/80 border border-white/5 shadow-sm rounded-2xl p-6 md:p-8 backdrop-blur-sm">
-        <MediaGallery initialPhotos={profile.photos} />
+        <MediaGallery initialPhotos={photos} />
       </div>
     </div>
   );

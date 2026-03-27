@@ -1,19 +1,29 @@
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { approveComment, deleteComment } from "../actions";
 import { formatTimeAgo } from "@/lib/utils";
 import { Check, Trash2, Star, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function AdminCommentsPage() {
-  const pendingComments = await prisma.comment.findMany({
-    where: { isApproved: false },
-    orderBy: { createdAt: "asc" },
-    include: {
-      author: { select: { username: true } },
-      profile: { select: { slug: true, name: true } },
-    }
-  });
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
+  let pendingComments: any[] = [];
+  try {
+    pendingComments = await fetchApi("/admin/comments/pending", {
+      headers: { 
+        "x-user-id": session.user.id,
+        "x-user-role": session.user.role
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching admin comments:", error);
+  }
 
   return (
     <div className="space-y-6">
@@ -36,7 +46,7 @@ export default async function AdminCommentsPage() {
               
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-white font-medium">{comment.author.username}</span>
+                  <span className="text-white font-medium">{comment.author?.username}</span>
                   <span className="text-dark-500 text-xs">— {formatTimeAgo(new Date(comment.createdAt))}</span>
                   <div className="flex bg-dark-900 border border-white/5 rounded-full px-2 py-0.5 items-center gap-1">
                     <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
@@ -47,8 +57,8 @@ export default async function AdminCommentsPage() {
                 <p className="text-dark-200 text-sm italic mb-4">"{comment.content}"</p>
 
                 <div className="text-xs text-dark-400 flex items-center gap-1">
-                  Ciblant <Link href={`/escorts/${comment.profile.slug}`} target="_blank" className="text-brand-400 hover:underline flex items-center gap-1">
-                    {comment.profile.name} <ExternalLink className="w-3 h-3" />
+                  Ciblant <Link href={`/escorts/${comment.profile?.slug}`} target="_blank" className="text-brand-400 hover:underline flex items-center gap-1">
+                    {comment.profile?.name} <ExternalLink className="w-3 h-3" />
                   </Link>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { Camera, Video, PlayCircle, Star, AlertCircle, Heart } from "lucide-react";
 import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
@@ -17,33 +17,17 @@ export default async function MediaHubPage({ searchParams }: MediaPageProps) {
   const isVideo = searchParams.type === "videos";
   const isTop = searchParams.sort === "top";
 
-  // Fetch Photos or Videos depending on the Query Params
+  // Fetch Photos or Videos from backend API
   let items: any[] = [];
-  
-  if (isVideo) {
-    items = await prisma.profileVideo.findMany({
-      where: { 
-        isApproved: true, 
-        profile: { isActive: true, isApproved: true } 
-      },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-      include: {
-        profile: { select: { slug: true, name: true, isTopGirl: true } }
-      }
-    });
-  } else {
-    items = await prisma.profilePhoto.findMany({
-      where: { 
-        isApproved: true, 
-        profile: { isActive: true, isApproved: true } 
-      },
-      orderBy: isTop ? { ratingAvg: "desc" } : { createdAt: "desc" },
-      take: 60,
-      include: {
-        profile: { select: { slug: true, name: true, isTopGirl: true } }
-      }
-    });
+  try {
+    const params = new URLSearchParams();
+    if (isVideo) params.set("type", "videos");
+    if (isTop) params.set("sort", "top");
+    
+    items = await fetchApi(`/media?${params.toString()}`);
+  } catch (error) {
+    console.error("Error fetching media:", error);
+    items = [];
   }
 
   return (
@@ -115,7 +99,6 @@ export default async function MediaHubPage({ searchParams }: MediaPageProps) {
                    <div className="relative w-full">
                      {isVideo ? (
                        <div className="aspect-[9/16] bg-dark-900 relative">
-                         {/* We assume videos have a thumbnailUrl, or we fallback */}
                          {media.thumbnailUrl ? (
                            <img src={media.thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                          ) : (

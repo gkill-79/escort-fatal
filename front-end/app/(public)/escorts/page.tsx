@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { searchProfiles } from "@/lib/queries/profiles";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { ProfileCard } from "@/components/features/profiles/ProfileCard";
 import { SearchFilters } from "@/components/features/search/SearchFilters";
 import { Flame } from "lucide-react";
@@ -16,7 +16,7 @@ type SearchPageProps = {
 
 export default async function EscortsSearchPage({ searchParams }: SearchPageProps) {
   const page = parseInt(searchParams.page as string) || 1;
-  const isOnline = searchParams.isOnline === "true" || searchParams.online === "true"; // supporting alternative parameter matching homepage URL (/escorts/online)
+  const isOnline = searchParams.isOnline === "true" || searchParams.online === "true"; 
   
   const filters = {
     cityId: searchParams.cityId ? parseInt(searchParams.cityId as string) : undefined,
@@ -28,7 +28,7 @@ export default async function EscortsSearchPage({ searchParams }: SearchPageProp
 
   const [searchResult, cities] = await Promise.all([
     searchProfiles(filters, page, 24),
-    prisma.city.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } })
+    fetchApi("/cities/list").catch(() => [])
   ]);
 
   return (
@@ -57,7 +57,6 @@ export default async function EscortsSearchPage({ searchParams }: SearchPageProp
 
           {/* Listing */}
           <div>
-            {/* Mobile filters toggler could go here in a future update */}
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {searchResult.items.map((profile: any, index: number) => (
                 <ProfileCard key={profile.id} profile={profile as never} priority={index < 4} />
@@ -73,7 +72,6 @@ export default async function EscortsSearchPage({ searchParams }: SearchPageProp
             {/* Basic Pagination */}
             {searchResult.totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-10">
-                {/* Simplified pagination links could go here if needed */}
                 <span className="text-dark-400 text-sm">
                   Page {searchResult.page} sur {searchResult.totalPages}
                 </span>

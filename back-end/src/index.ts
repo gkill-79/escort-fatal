@@ -11,6 +11,8 @@ import profilesRouter from "./routes/profiles";
 import profilesV2Router from "./routes/profiles_v2";
 import citiesRouter from "./routes/cities";
 import authRouter from "./routes/auth";
+import mediaRouter from "./routes/media";
+import adminRouter from "./routes/admin";
 
 const app = express();
 const server = createServer(app);
@@ -35,6 +37,8 @@ app.use("/profiles", profilesRouter);
 app.use("/v2/profiles", profilesV2Router);
 app.use("/cities", citiesRouter);
 app.use("/auth", authRouter);
+app.use("/media", mediaRouter);
+app.use("/admin", adminRouter);
 
 // --- Socket.io Logic (Moved from server/index.ts) ---
 io.on("connection", (socket) => {

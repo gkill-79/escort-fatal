@@ -1,25 +1,33 @@
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { approvePhoto, rejectAndDeletePhoto } from "../actions";
 import { formatTimeAgo } from "@/lib/utils";
 import { Check, Trash2, Images, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Modération des Médias — Escorte Fatal Admin",
 };
 
 export default async function AdminMediaPage() {
-  const pendingPhotos = await prisma.profilePhoto.findMany({
-    where: { isApproved: false },
-    orderBy: { createdAt: "asc" },
-    take: 50,
-    include: {
-      profile: {
-        select: { name: true, slug: true },
-      },
-    },
-  });
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
+  let pendingPhotos: any[] = [];
+  try {
+    pendingPhotos = await fetchApi("/admin/photos/pending", {
+      headers: { 
+        "x-user-id": session.user.id,
+        "x-user-role": session.user.role
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching admin media:", error);
+  }
 
   return (
     <div className="space-y-6">
@@ -49,7 +57,7 @@ export default async function AdminMediaPage() {
               <div className="relative aspect-[4/3] bg-dark-900 overflow-hidden">
                 <img
                   src={photo.url}
-                  alt={`Photo de ${photo.profile.name}`}
+                  alt={`Photo de ${photo.profile?.name}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -65,11 +73,11 @@ export default async function AdminMediaPage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <Link
-                      href={`/escorts/${photo.profile.slug}`}
+                      href={`/escorts/${photo.profile?.slug}`}
                       target="_blank"
                       className="text-white font-semibold text-sm hover:text-brand-400 transition-colors flex items-center gap-1"
                     >
-                      {photo.profile.name}
+                      {photo.profile?.name}
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </Link>
                     <span className="text-dark-500 text-xs">

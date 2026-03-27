@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { RegisterEscortForm } from "@/components/features/auth/RegisterEscortForm";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { Flame } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -10,11 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RegisterEscortPage() {
-  // Fetch popular cities for the form select
-  const cities = await prisma.city.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  // Fetch popular cities for the form select from API
+  let cities: any[] = [];
+  try {
+    cities = await fetchApi("/cities/list");
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+  }
 
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">

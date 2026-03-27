@@ -1,26 +1,35 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { ProfileSettingsForm } from "@/components/features/dashboard/ProfileSettingsForm";
 
-export default async function DashboardPage() {
+export default async function DashboardSettingsPage() {
   const session = await auth();
 
   if (!session || session.user.role !== "ESCORT") {
     redirect("/login");
   }
 
-  // Fetch escort's profile
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  if (!profile) {
-    return <div>Erreur : Profil introuvable. Veuillez contacter le support.</div>;
+  // Fetch everything from the settings endpoint
+  let data: any = null;
+  try {
+    data = await fetchApi("/v2/profiles/me/settings", {
+      headers: { "x-user-id": session.user.id }
+    });
+  } catch (error) {
+    console.error("Error fetching settings:", error);
   }
 
-  const cities = await prisma.city.findMany({ orderBy: { name: "asc" } });
-  const departments = await prisma.department.findMany({ orderBy: { name: "asc" } });
+  if (!data || !data.profile) {
+    return (
+      <div className="py-20 text-center">
+        <h3 className="text-xl font-bold text-white mb-2">Erreur : Profil introuvable</h3>
+        <p className="text-dark-400">Veuillez contacter le support si ce problème persiste.</p>
+      </div>
+    );
+  }
+
+  const { profile, cities, departments } = data;
 
   // Decrypt phone if it exists
   const { decrypt } = await import("@/lib/encryption");

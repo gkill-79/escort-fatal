@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { MapPin, ChevronRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { formatCount } from "@/lib/utils";
@@ -11,22 +11,17 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600; // Cache for 1 hour
 
+async function getDepartments() {
+  try {
+    return await fetchApi("/cities");
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    return [];
+  }
+}
+
 export default async function AllCitiesPage() {
-  // Fetch active departments that actually contain cities with active profiles
-  const departments = await prisma.department.findMany({
-    where: {
-      cities: {
-        some: { profileCount: { gt: 0 } }
-      }
-    },
-    include: {
-      cities: {
-        where: { profileCount: { gt: 0 } },
-        orderBy: { name: "asc" },
-      }
-    },
-    orderBy: { name: "asc" }
-  });
+  const departments = await getDepartments();
 
   return (
     <div className="min-h-screen">

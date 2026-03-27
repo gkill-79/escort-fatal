@@ -4,7 +4,7 @@ import { getProfileBySlug } from "@/lib/queries/profiles";
 import { ProfileDetail } from "@/components/features/profiles/ProfileDetail";
 import { ProfileComments } from "@/components/features/profiles/ProfileComments";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 
 type Props = {
   params: { slug: string };
@@ -33,10 +33,14 @@ export default async function EscortProfilePage({ params }: Props) {
 
   let isFollowing = false;
   if (session?.user?.id) {
-    const follow = await prisma.follow.findUnique({
-      where: { followerId_profileId: { followerId: session.user.id, profileId: profile.id } }
-    });
-    isFollowing = !!follow;
+    try {
+      const res = await fetchApi(`/v2/profiles/is-following?profileId=${profile.id}`, {
+        headers: { "x-user-id": session.user.id }
+      });
+      isFollowing = res.isFollowing;
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+    }
   }
 
   return (

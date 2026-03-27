@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import Link from "next/link";
 import { ShieldAlert, ShieldCheck, Users, MessageSquare, Star, ArrowRight, TrendingUp } from "lucide-react";
 
@@ -11,18 +11,26 @@ export default async function DashboardOverviewPage() {
     redirect("/login");
   }
 
-  // Fetch escort's profile
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-    include: {
-      _count: {
-        select: { followers: true, comments: { where: { isApproved: true } }, chatRooms: true }
-      }
-    }
-  });
+  // Fetch escort's profile from the API
+  let profile: any = null;
+  try {
+    profile = await fetchApi("/v2/profiles/me/stats", {
+      headers: { "x-user-id": session.user.id }
+    });
+  } catch (error) {
+    console.error("Dashboard Stats Error:", error);
+  }
 
   if (!profile) {
-    return <div>Erreur : Profil introuvable.</div>;
+    return (
+      <div className="py-20 text-center">
+        <h3 className="text-xl font-bold text-white mb-2">Erreur : Profil introuvable</h3>
+        <p className="text-dark-400">Assurez-vous d'avoir complété votre profil escorte.</p>
+        <Link href="/register/escort" className="text-brand-400 hover:underline mt-4 inline-block">
+          S'inscrire comme escorte
+        </Link>
+      </div>
+    );
   }
 
   return (

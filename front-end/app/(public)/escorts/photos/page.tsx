@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Camera, AlertCircle, Heart } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { formatTimeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -12,26 +12,13 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function EscortPhotosGalleryPage() {
-  const photos = await prisma.profilePhoto.findMany({
-    where: {
-      isApproved: true,
-      profile: {
-        isActive: true,
-        isApproved: true,
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 60,
-    include: {
-      profile: {
-        select: {
-          slug: true,
-          name: true,
-          isTopGirl: true,
-        },
-      },
-    },
-  });
+  let photos: any[] = [];
+  try {
+    photos = await fetchApi("/media?type=photos");
+  } catch (error) {
+    console.error("Error fetching photos:", error);
+    photos = [];
+  }
 
   return (
     <div className="min-h-screen">
@@ -113,4 +100,3 @@ export default async function EscortPhotosGalleryPage() {
     </div>
   );
 }
-

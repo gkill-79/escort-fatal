@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { ProfileCard } from "@/components/features/profiles/ProfileCard";
 import { Heart } from "lucide-react";
 
@@ -17,18 +17,14 @@ export default async function MemberFollowingPage() {
     redirect("/escort/dashboard");
   }
 
-  const follows = await prisma.follow.findMany({
-    where: { followerId: session.user.id },
-    include: {
-      profile: {
-        include: {
-          city: true,
-          photos: { where: { isPrimary: true, isApproved: true }, take: 1 },
-        }
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  let follows: any[] = [];
+  try {
+    follows = await fetchApi("/v2/profiles/me/following", {
+      headers: { "x-user-id": session.user.id }
+    });
+  } catch (error) {
+    console.error("Error fetching following:", error);
+  }
 
   return (
     <div className="space-y-6">

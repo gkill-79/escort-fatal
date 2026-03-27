@@ -1,19 +1,29 @@
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 import { dismissReport, banProfile } from "../actions";
 import { formatTimeAgo } from "@/lib/utils";
 import { ShieldAlert, Ban, XCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function AdminReportsPage() {
-  const pendingReports = await prisma.report.findMany({
-    where: { status: "PENDING" },
-    orderBy: { createdAt: "asc" },
-    include: {
-      reporter: { select: { username: true } },
-      profile: { select: { name: true, slug: true } },
-    }
-  });
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
+  let pendingReports: any[] = [];
+  try {
+    pendingReports = await fetchApi("/admin/reports", {
+      headers: { 
+        "x-user-id": session.user.id,
+        "x-user-role": session.user.role
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching admin reports:", error);
+  }
 
   return (
     <div className="space-y-6">

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Prisma, UserRole } from "@prisma/client";
 import { Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
+import { auth } from "@/lib/auth";
 import UserRow from "./UserRow";
 import { UsersFilters } from "./UsersFilters";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Gestion des Comptes — Escorte Fatal Admin",
@@ -14,62 +15,53 @@ export default async function AdminUsersPage({
 }: {
   searchParams: { q?: string; role?: string; status?: string; page?: string; limit?: string };
 }) {
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
   const query = searchParams.q || "";
   const roleFilter = searchParams.role || "ALL";
   const statusFilter = searchParams.status || "ALL";
-  const page = Math.max(1, Number.parseInt(searchParams.page || "1", 10) || 1);
-  const requestedLimit = Number.parseInt(searchParams.limit || "25", 10) || 25;
+  const page = searchParams.page || "1";
+  const limit = searchParams.limit || "25";
+
+  // Fetch data from API
+  let data: any = { items: [], total: 0, activeCount: 0, bannedCount: 0, escortCount: 0, totalPages: 1 };
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      role: roleFilter,
+      status: statusFilter,
+      page: page,
+      limit: limit,
+    });
+    data = await fetchApi(`/admin/users?${params.toString()}`, {
+      headers: { 
+        "x-user-id": session.user.id,
+        "x-user-role": session.user.role
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+  }
+
+  const { items: users, total: totalUsers, activeCount, bannedCount, escortCount, totalPages } = data;
+  const safePage = data.page || 1;
+  const limitNum = data.limit || 25;
+
+  const currentFrom = totalUsers === 0 ? 0 : (safePage - 1) * limitNum + 1;
+  const currentTo = totalUsers === 0 ? 0 : Math.min(safePage * limitNum, totalUsers);
+
   const allowedLimits = [10, 25, 50, 100];
-  const limit = allowedLimits.includes(requestedLimit) ? requestedLimit : 25;
-
-  const allowedRoles = new Set(Object.values(UserRole));
-  const parsedRole = allowedRoles.has(roleFilter as UserRole)
-    ? (roleFilter as UserRole)
-    : null;
-
-  const where: Prisma.UserWhereInput = {
-    ...(query
-      ? {
-          OR: [
-            { username: { contains: query, mode: "insensitive" } },
-            { email: { contains: query, mode: "insensitive" } },
-          ],
-        }
-      : {}),
-    ...(parsedRole ? { role: parsedRole } : {}),
-    ...(statusFilter === "ACTIVE"
-      ? { isActive: true }
-      : statusFilter === "BANNED"
-        ? { isActive: false }
-        : {}),
-  };
-
-  const totalUsers = await prisma.user.count({ where });
-  const totalPages = Math.max(1, Math.ceil(totalUsers / limit));
-  const safePage = Math.min(page, totalPages);
-  const skip = (safePage - 1) * limit;
-
-  const [users, activeCount, bannedCount, escortCount] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.user.count({ where: { ...where, isActive: true } }),
-    prisma.user.count({ where: { ...where, isActive: false } }),
-    prisma.user.count({ where: { ...where, role: "ESCORT" } }),
-  ]);
-
-  const currentFrom = totalUsers === 0 ? 0 : (safePage - 1) * limit + 1;
-  const currentTo = totalUsers === 0 ? 0 : Math.min(safePage * limit, totalUsers);
 
   function buildUsersHref(overrides: Record<string, string | null>) {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    if (parsedRole) params.set("role", parsedRole);
+    if (roleFilter !== "ALL") params.set("role", roleFilter);
     if (statusFilter !== "ALL") params.set("status", statusFilter);
-    params.set("limit", String(limit));
+    params.set("limit", String(limitNum));
+    params.set("page", String(safePage));
 
     Object.entries(overrides).forEach(([key, value]) => {
       if (!value) params.delete(key);
@@ -81,11 +73,13 @@ export default async function AdminUsersPage({
   }
 
   const prevPageHref = safePage > 1 ? buildUsersHref({ page: String(safePage - 1) }) : null;
-  const nextPageHref =
-    safePage < totalPages ? buildUsersHref({ page: String(safePage + 1) }) : null;
+  const nextPageHref = safePage < totalPages ? buildUsersHref({ page: String(safePage + 1) }) : null;
+
+  // Pagination logic
   const pageNumbers = Array.from(
     new Set([1, safePage - 1, safePage, safePage + 1, totalPages].filter((n) => n >= 1 && n <= totalPages))
-  );
+  ).sort((a, b) => a - b);
+
   const paginationItems: Array<number | "ELLIPSIS"> = [];
   pageNumbers.forEach((pageNumber, index) => {
     const previous = pageNumbers[index - 1];
@@ -120,7 +114,7 @@ export default async function AdminUsersPage({
         <span className="text-xs font-semibold px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
           Escortes: {escortCount}
         </span>
-        {(query || parsedRole || statusFilter !== "ALL") && (
+        {(query || roleFilter !== "ALL" || statusFilter !== "ALL") && (
           <Link
             href="/admin/users"
             className="text-xs font-semibold px-3 py-1 rounded-full bg-dark-900 text-dark-300 border border-white/10 hover:text-white hover:bg-white/5 transition-colors"
@@ -152,7 +146,7 @@ export default async function AdminUsersPage({
                   </td>
                 </tr>
               ) : (
-                users.map((user) => <UserRow key={user.id} user={user} />)
+                users.map((user: any) => <UserRow key={user.id} user={user} />)
               )}
             </tbody>
           </table>
@@ -171,7 +165,7 @@ export default async function AdminUsersPage({
               key={option}
               href={buildUsersHref({ limit: String(option), page: "1" })}
               className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                option === limit
+                option === limitNum
                   ? "bg-brand-500 text-white border-brand-500"
                   : "border-white/10 text-dark-300 hover:text-white hover:bg-white/5"
               }`}
@@ -235,4 +229,3 @@ export default async function AdminUsersPage({
     </div>
   );
 }
-

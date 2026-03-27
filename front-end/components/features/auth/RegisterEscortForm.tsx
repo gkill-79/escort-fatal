@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { fetchApi } from "@/lib/api-client";
 
 // Assuming a basic Input component exists or we can just use standard HTML inputs styled with Tailwind
 // We'll use standard inputs for simplicity and robustness if a custom one isn't fully robust.
@@ -51,9 +52,8 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
     setError(null);
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetchApi("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: data.username,
           email: data.email,

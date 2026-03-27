@@ -162,4 +162,126 @@ router.get("/admin/stats", async (req, res) => {
   }
 });
 
+// GET /is-following?profileId=...
+router.get("/is-following", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"] as string;
+    const { profileId } = req.query;
+    
+    if (!userId || !profileId) return res.json({ isFollowing: false });
+
+    const follow = await prisma.follow.findUnique({
+      where: { 
+        followerId_profileId: { 
+          followerId: userId, 
+          profileId: profileId as string 
+        } 
+      }
+    });
+
+    res.json({ isFollowing: !!follow });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /me/following
+router.get("/me/following", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"] as string;
+    if (!userId) return res.status(401).json({ message: "Non autorisé" });
+
+    const follows = await prisma.follow.findMany({
+      where: { followerId: userId },
+      include: {
+        profile: {
+          include: {
+            city: true,
+            photos: { where: { isPrimary: true, isApproved: true }, take: 1 },
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    res.json(follows);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /me/stats
+router.get("/me/stats", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"] as string;
+    if (!userId) return res.status(401).json({ message: "Non autorisé" });
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: {
+        _count: {
+          select: { followers: true, comments: { where: { isApproved: true } } }
+        }
+      }
+    });
+
+    if (!profile) return res.status(404).json({ message: "Profil introuvable" });
+
+    // Count chat rooms for the user
+    const chatRoomsCount = await prisma.chatRoom.count({
+      where: { participants: { some: { id: userId } } }
+    });
+
+    res.json({
+      ...profile,
+      _count: {
+        ...profile._count,
+        chatRooms: chatRoomsCount
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /me/photos
+router.get("/me/photos", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"] as string;
+    if (!userId) return res.status(401).json({ message: "Non autorisé" });
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: {
+        photos: { orderBy: { order: "asc" } }
+      }
+    });
+
+    if (!profile) return res.status(404).json({ message: "Profil introuvable" });
+    res.json(profile.photos);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /me/settings
+router.get("/me/settings", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"] as string;
+    if (!userId) return res.status(401).json({ message: "Non autorisé" });
+
+    const [profile, cities, departments] = await Promise.all([
+      prisma.profile.findUnique({ where: { userId } }),
+      prisma.city.findMany({ orderBy: { name: "asc" } }),
+      prisma.department.findMany({ orderBy: { name: "asc" } })
+    ]);
+
+    if (!profile) return res.status(404).json({ message: "Profil introuvable" });
+
+    res.json({ profile, cities, departments });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

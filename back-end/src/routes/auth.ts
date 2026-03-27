@@ -46,4 +46,57 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// POST /auth/register
+router.post("/register", async (req, res) => {
+  try {
+    const { username, email, password, role, gender, cityId } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Champs requis manquants" });
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Email ou pseudo déjà utilisé" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        passwordHash,
+        role: role || "USER",
+        isActive: true,
+        // Create profile if role is ESCORT
+        profile: role === "ESCORT" ? {
+          create: {
+            name: username,
+            slug: username.toLowerCase().replace(/ /g, "-"),
+            gender: gender || "FEMALE",
+            cityId: cityId || undefined,
+            status: "PENDING",
+            isApproved: false,
+            isActive: true,
+          }
+        } : undefined
+      }
+    });
+
+    res.status(201).json({
+      id: user.id,
+      username: user.username,
+      role: user.role
+    });
+  } catch (error) {
+    console.error("Register API Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
