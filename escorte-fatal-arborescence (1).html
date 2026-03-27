@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>escorte-fatal — Arborescence complète</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --orange: #f0883e;
+    --purple: #bc8cff;
+    --pink: #ff7b72;
+    --cyan: #39d353;
+    --teal: #56d364;
+    --accent: #e63946;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 32px;
+  }
+  .header {
+    background: linear-gradient(135deg, #1a2744 0%, #0d1117 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 36px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #58a6ff, var(--purple));
+  }
+  .header h1 {
+    font-family: 'Arial', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .header h1 span { color: var(--accent); }
+  .header .subtitle {
+    font-family: 'Arial', sans-serif;
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .badges {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-family: 'Arial', sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .badge.blue { border-color: #58a6ff44; color: var(--blue); }
+  .badge.green { border-color: #3fb95044; color: var(--green); }
+  .badge.purple { border-color: #bc8cff44; color: var(--purple); }
+  .badge.orange { border-color: #f0883e44; color: var(--orange); }
+
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--blue); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin-bottom: 28px;
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .sections { display: flex; flex-direction: column; gap: 16px; }
+
+  .section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Arial', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header .icon { font-size: 16px; }
+  .section-header .title { color: var(--text); flex: 1; }
+  .section-header .count {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .section-body { padding: 12px 16px; }
+
+  .tree { line-height: 1.8; }
+  .tree-line { display: flex; align-items: baseline; gap: 0; white-space: pre; }
+  .connector { color: var(--border); user-select: none; }
+  .entry { display: flex; align-items: baseline; gap: 5px; }
+
+  /* File types */
+  .f-tsx  { color: #61dafb; }   /* React/TSX */
+  .f-ts   { color: #3178c6; }   /* TypeScript */
+  .f-css  { color: #f472b6; }   /* CSS */
+  .f-env  { color: var(--yellow); }  /* env */
+  .f-json { color: var(--orange); }  /* json/config */
+  .f-sql  { color: #a78bfa; }   /* SQL/Prisma */
+  .f-md   { color: var(--muted); }   /* Markdown */
+  .f-dir  { color: var(--yellow); font-weight: 700; }   /* Directory */
+  .f-sh   { color: var(--green); }   /* Shell */
+  .f-img  { color: #34d399; }   /* Image/assets */
+
+  .comment { color: #484f58; font-size: 11px; margin-left: 6px; }
+
+  .root-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 16px;
+    padding: 8px 16px;
+    background: #1a2744;
+    border: 1px solid #2d4a8a;
+    border-radius: 8px;
+  }
+  .root-name span { color: var(--accent); }
+
+  .group-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: 10px 0 4px 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+  .group-label:first-child { border-top: none; margin-top: 0; padding-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📁 <span>escorte-fatal</span> — Arborescence Complète</h1>
+  <div class="subtitle">Next.js 14 (App Router) · TypeScript · PostgreSQL 18 · Prisma ORM · Socket.io · Stripe</div>
+  <div class="badges">
+    <span class="badge blue">Next.js 14</span>
+    <span class="badge blue">TypeScript 5</span>
+    <span class="badge green">PostgreSQL 18</span>
+    <span class="badge purple">Prisma ORM</span>
+    <span class="badge orange">Stripe</span>
+    <span class="badge blue">Socket.io</span>
+    <span class="badge green">Tailwind CSS</span>
+    <span class="badge purple">NextAuth.js v5</span>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">~280</div><div class="stat-label">Fichiers à coder</div></div>
+  <div class="stat"><div class="stat-num">38</div><div class="stat-label">Pages / Routes</div></div>
+  <div class="stat"><div class="stat-num">52</div><div class="stat-label">Composants React</div></div>
+  <div class="stat"><div class="stat-num">26</div><div class="stat-label">API Endpoints</div></div>
+  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Tables PostgreSQL</div></div>
+  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Phases de dev</div></div>
+</div>
+
+<div class="legend">
+  <strong style="font-family:Arial;color:var(--muted)">Légende :</strong>
+  <div class="legend-item"><div class="dot" style="background:#61dafb"></div><span style="color:#61dafb">.tsx</span> Composant React</div>
+  <div class="legend-item"><div class="dot" style="background:#3178c6"></div><span style="color:#3178c6">.ts</span> TypeScript</div>
+  <div class="legend-item"><div class="dot" style="background:#f472b6"></div><span style="color:#f472b6">.css</span> Styles</div>
+  <div class="legend-item"><div class="dot" style="background:#a78bfa"></div><span style="color:#a78bfa">.prisma</span> Schéma DB</div>
+  <div class="legend-item"><div class="dot" style="background:#f0883e"></div><span style="color:#f0883e">.json</span> Config</div>
+  <div class="legend-item"><div class="dot" style="background:#d29922"></div><span style="color:#d29922">.env</span> Variables</div>
+  <div class="legend-item"><div class="dot" style="background:#3fb950"></div><span style="color:#3fb950">.sh</span> Scripts</div>
+</div>
+
+<div class="sections">
+
+<!-- ROOT -->
+<div class="section">
+<div class="section-header"><span class="icon">🗂️</span><span class="title">escorte-fatal/ — Racine du projet</span><span class="count">12 fichiers</span></div>
+<div class="section-body">
+<div class="root-name">📁 <span>escorte-fatal</span>/</div>
+<div class="tree">
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">package.json</span><span class="comment">// dépendances npm</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">package-lock.json</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">tsconfig.json</span><span class="comment">// configuration TypeScript</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">next.config.ts</span><span class="comment">// config Next.js — images, redirects, i18n</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">tailwind.config.ts</span><span class="comment">// thème Tailwind personnalisé</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">postcss.config.js</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">eslint.config.mjs</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">prettier.config.js</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-env">.env</span><span class="comment">// variables d'environnement (gitignored)</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-env">.env.example</span><span class="comment">// template des variables requises</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-env">.env.local</span><span class="comment">// variables locales dev</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-md">.gitignore</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-md">README.md</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">docker-compose.yml</span><span class="comment">// PostgreSQL + Redis en local</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-json">docker-compose.prod.yml</span><span class="comment">// production</span></span></div>
+</div>
+</div>
+</div>
+
+<!-- PRISMA -->
+<div class="section">
+<div class="section-header"><span class="icon">🗄️</span><span class="title">prisma/ — Base de données PostgreSQL 18</span><span class="count">6 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">prisma/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-sql">schema.prisma</span><span class="comment">// modèle complet — 18 tables</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">migrations/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-sql">20240101_init/migration.sql</span><span class="comment">// users, profiles, cities</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-sql">20240102_media/migration.sql</span><span class="comment">// photos, videos</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-sql">20240103_social/migration.sql</span><span class="comment">// follows, comments, ratings</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-sql">20240104_chat/migration.sql</span><span class="comment">// messages, rooms</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-sql">20240105_payments/migration.sql</span><span class="comment">// payments, boosts</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-sql">20240106_indexes/migration.sql</span><span class="comment">// GIN, GiST, partial indexes</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">seed.ts</span><span class="comment">// seed cities, departments, admin user</span></span></div>
+</div></div>
+</div>
+
+<!-- APP ROUTER -->
+<div class="section">
+<div class="section-header"><span class="icon">⚛️</span><span class="title">app/ — Next.js App Router (pages & API)</span><span class="count">80 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">app/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-tsx">layout.tsx</span><span class="comment">// Root layout — providers, fonts, meta global</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🏠 Accueil — Top Girls, Live Feed, Stats</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-tsx">not-found.tsx</span><span class="comment">// Page 404 custom</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-tsx">error.tsx</span><span class="comment">// Error boundary global</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-tsx">loading.tsx</span><span class="comment">// Skeleton accueil</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-css">globals.css</span><span class="comment">// variables CSS, reset, animations</span></span></div>
+
+<div class="group-label">🌐 Routes publiques — Layout commun (header/footer)</div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">(public)/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">layout.tsx</span><span class="comment">// Header + Footer + AgeVerification modal</span></span></div>
+
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">escorts/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">[city]/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🏙️ Listing par ville</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">loading.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">online/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🟢 Escortes en ligne</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">photos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📷 Galerie photos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">loading.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">topphotos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🏆 Top 100 photos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">ratephotos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ⭐ Évaluer photos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-dir">last/</span></span></div>
+<div class="tree-line"><span class="connector">│   │       └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🆕 Nouveaux profils</span></span></div>
+
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">escort/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">[slug]/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 👤 Profil détaillé escorte</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   ├── </span><span class="entry"><span class="f-tsx">loading.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">opengraph-image.tsx</span><span class="comment">// OG image dynamique</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-dir">annonce/</span></span></div>
+<div class="tree-line"><span class="connector">│   │       ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📋 Liste annonces</span></span></div>
+<div class="tree-line"><span class="connector">│   │       └── </span><span class="entry"><span class="f-dir">new/</span></span></div>
+<div class="tree-line"><span class="connector">│   │           └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ✏️ Poster une annonce</span></span></div>
+
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">profiles/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">webcam/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📹 Services webcam</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">trans/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// TV/TS</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">males/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Hommes</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">couples/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Couples</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">most_followed/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 💛 Profils les plus suivis</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-dir">loyal/</span></span></div>
+<div class="tree-line"><span class="connector">│   │       └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🤝 Profils fidèles</span></span></div>
+
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">exclusives/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ⭐ Profils exclusifs premium</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">video/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🎥 Galerie vidéos</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">live-feed/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📡 Flux en direct SSE</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">online-in-chat/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 💬 Membres dans le chat</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">top-50-members-choice/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🥇 Classement top 50</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">city_tours/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ✈️ Escortes en déplacement</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">comments/latest/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 💬 Derniers commentaires</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">france/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🇫🇷 Index France</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">belgium/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🇧🇪 Index Belgique</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">luxembourg/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🇱🇺 Index Luxembourg</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">all-cities/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Liste toutes les villes</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-dir">all-departments/</span></span></div>
+<div class="tree-line"><span class="connector">│       └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Liste tous les départements</span></span></div>
+
+<div class="group-label">🔐 Routes authentification</div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">(auth)/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">layout.tsx</span><span class="comment">// Layout centré sans nav</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">login/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🔑 Page connexion</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">register/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📝 Inscription — wizard 3 étapes</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">forgot-password/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-dir">reset-password/</span></span></div>
+<div class="tree-line"><span class="connector">│       └── </span><span class="entry"><span class="f-tsx">page.tsx</span></span></div>
+
+<div class="group-label">📊 Dashboard escorte (protégé)</div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">(dashboard)/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">layout.tsx</span><span class="comment">// Sidebar dashboard + header</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">dashboard/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📊 Vue d'ensemble stats</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">profile/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ✏️ Édition profil</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">photos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🖼️ Gestion photos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">videos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🎥 Gestion vidéos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">messages/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 💬 Messagerie</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">boost/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 🚀 Acheter visibilité</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">analytics/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📈 Vues, clics, revenus</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">calendar/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// 📅 Disponibilités + city tours</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-dir">settings/</span></span></div>
+<div class="tree-line"><span class="connector">│   │       └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// ⚙️ Paramètres compte</span></span></div>
+
+<div class="group-label">🛡️ Back-office admin (protégé)</div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-dir">admin/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Dashboard admin</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">users/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Gestion utilisateurs</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">profiles/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Modération profils</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">photos/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Approbation photos</span></span></div>
+<div class="tree-line"><span class="connector">│   │   ├── </span><span class="entry"><span class="f-dir">reports/</span></span></div>
+<div class="tree-line"><span class="connector">│   │   │   └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// File de signalements</span></span></div>
+<div class="tree-line"><span class="connector">│   │   └── </span><span class="entry"><span class="f-dir">payments/</span></span></div>
+<div class="tree-line"><span class="connector">│   │       └── </span><span class="entry"><span class="f-tsx">page.tsx</span><span class="comment">// Transactions Stripe</span></span></div>
+
+<div class="group-label">🔌 API Route Handlers</div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">api/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">auth/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-dir">[...nextauth]/</span></span></div>
+<div class="tree-line"><span class="connector">    │   │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// NextAuth handlers</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">register/</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST inscription</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">profiles/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET (search), POST (créer)</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">[id]/</span></span></div>
+<div class="tree-line"><span class="connector">    │       ├── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET, PUT, DELETE</span></span></div>
+<div class="tree-line"><span class="connector">    │       ├── </span><span class="entry"><span class="f-dir">photos/</span></span></div>
+<div class="tree-line"><span class="connector">    │       │   └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    │       ├── </span><span class="entry"><span class="f-dir">videos/</span></span></div>
+<div class="tree-line"><span class="connector">    │       │   └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    │       ├── </span><span class="entry"><span class="f-dir">follow/</span></span></div>
+<div class="tree-line"><span class="connector">    │       │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST toggle follow</span></span></div>
+<div class="tree-line"><span class="connector">    │       ├── </span><span class="entry"><span class="f-dir">comments/</span></span></div>
+<div class="tree-line"><span class="connector">    │       │   └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-dir">view/</span></span></div>
+<div class="tree-line"><span class="connector">    │           └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST incrémenter vues</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">photos/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">rate/</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST noter photo</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">chat/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-dir">rooms/</span></span></div>
+<div class="tree-line"><span class="connector">    │   │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET rooms, POST créer</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">[roomId]/messages/</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET historique</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">online/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET SSE — statuts online</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">live-feed/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET SSE — flux activités</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">upload/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST — S3/R2 presigned URL</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">search/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// GET fulltext search</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">cities/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">departments/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">payments/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-dir">create-session/</span></span></div>
+<div class="tree-line"><span class="connector">    │   │   └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST Stripe Checkout</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">webhook/</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-ts">route.ts</span><span class="comment">// POST webhook Stripe</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">stats/</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-dir">[profileId]/</span></span></div>
+<div class="tree-line"><span class="connector">    │       └── </span><span class="entry"><span class="f-ts">route.ts</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-dir">admin/</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-ts">users/route.ts</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-ts">profiles/route.ts</span></span></div>
+<div class="tree-line"><span class="connector">        └── </span><span class="entry"><span class="f-ts">reports/route.ts</span></span></div>
+</div></div>
+</div>
+
+<!-- COMPONENTS -->
+<div class="section">
+<div class="section-header"><span class="icon">🧩</span><span class="title">components/ — Composants React réutilisables</span><span class="count">55 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">components/</span></div>
+
+<div class="group-label">🎨 UI — Primitives</div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">ui/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Button.tsx</span><span class="comment">// variants: primary, secondary, ghost, danger</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Input.tsx</span><span class="comment">// text, email, password, search</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Select.tsx</span><span class="comment">// dropdown custom</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Textarea.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Checkbox.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Toggle.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Badge.tsx</span><span class="comment">// TOP GIRL, VERIFIED, ONLINE, EXCLUSIVE</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Avatar.tsx</span><span class="comment">// image ronde + fallback initiales</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Modal.tsx</span><span class="comment">// dialog accessible avec backdrop</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Drawer.tsx</span><span class="comment">// slide-in mobile menu</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Toast.tsx</span><span class="comment">// notifications coin bas-droit</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Tooltip.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Skeleton.tsx</span><span class="comment">// placeholder loading animé</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Spinner.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Tabs.tsx</span><span class="comment">// navigation par onglets</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Accordion.tsx</span><span class="comment">// filtres dépliables</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Pagination.tsx</span><span class="comment">// numéros + prev/next</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">StarRating.tsx</span><span class="comment">// étoiles interactives half-star SVG</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">OnlineIndicator.tsx</span><span class="comment">// cercle vert pulsant</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">ProgressBar.tsx</span><span class="comment">// upload progress</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-tsx">Chip.tsx</span><span class="comment">// tag filtre avec croix</span></span></div>
+
+<div class="group-label">🗺️ Layout — Structure des pages</div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">layouts/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Header.tsx</span><span class="comment">// sticky — logo, nav, online count, auth CTA</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">MegaMenu.tsx</span><span class="comment">// dropdown multi-niveaux</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Footer.tsx</span><span class="comment">// liens légaux, pays, stats, newsletter</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Sidebar.tsx</span><span class="comment">// filtres recherche — desktop fixe</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">MobileNav.tsx</span><span class="comment">// bottom nav bar 5 icônes</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">DashboardSidebar.tsx</span><span class="comment">// navigation dashboard escorte</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">AdminSidebar.tsx</span><span class="comment">// navigation back-office</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-tsx">Breadcrumb.tsx</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-tsx">SessionTimer.tsx</span><span class="comment">// countdown timeout dans header</span></span></div>
+
+<div class="group-label">🃏 Features — Composants métier</div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">features/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">profiles/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileCard.tsx</span><span class="comment">// carte 280×380 — photo, badges, online, étoiles</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileCardMini.tsx</span><span class="comment">// version compacte live feed</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileGrid.tsx</span><span class="comment">// grille responsive + infinite scroll</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileDetail.tsx</span><span class="comment">// page profil complète</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileForm.tsx</span><span class="comment">// création/édition multi-étapes</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileServices.tsx</span><span class="comment">// liste services proposés</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ProfileStats.tsx</span><span class="comment">// vues, followers, notes</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">FollowButton.tsx</span><span class="comment">// toggle follow optimistic</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">search/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">SearchBar.tsx</span><span class="comment">// fulltext + autocomplete villes</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">FilterSidebar.tsx</span><span class="comment">// âge, services, prix, disponibilité</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">FilterChips.tsx</span><span class="comment">// tags filtres actifs</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">SortSelector.tsx</span><span class="comment">// trier par : récent, note, online</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">media/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">PhotoGallery.tsx</span><span class="comment">// galerie Swiper + lightbox</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">PhotoCard.tsx</span><span class="comment">// image + overlay évaluer</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">Lightbox.tsx</span><span class="comment">// zoom, clavier, swipe mobile</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">VideoCard.tsx</span><span class="comment">// thumbnail + play + durée</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">VideoPlayer.tsx</span><span class="comment">// HLS.js player adaptatif</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">PhotoUpload.tsx</span><span class="comment">// drag&drop + crop + compress</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">chat/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ChatInterface.tsx</span><span class="comment">// interface style WhatsApp Web</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ChatRoomList.tsx</span><span class="comment">// liste des conversations</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ChatMessage.tsx</span><span class="comment">// bulle message + timestamp</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">ChatInput.tsx</span><span class="comment">// input + emoji + send</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">TypingIndicator.tsx</span><span class="comment">// animation 3 points</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">map/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">MapView.tsx</span><span class="comment">// Leaflet dark theme + clusters</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">CityPicker.tsx</span><span class="comment">// sélecteur ville sur carte</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-dir">payments/</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">BoostModal.tsx</span><span class="comment">// sélection durée boost + Stripe</span></span></div>
+<div class="tree-line"><span class="connector">    │   ├── </span><span class="entry"><span class="f-tsx">PricingCard.tsx</span><span class="comment">// carte offre TOP GIRL</span></span></div>
+<div class="tree-line"><span class="connector">    │   └── </span><span class="entry"><span class="f-tsx">PaymentSuccess.tsx</span><span class="comment">// page retour Stripe</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-dir">misc/</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-tsx">AgeVerification.tsx</span><span class="comment">// modal légale premier accès</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-tsx">LiveFeedWidget.tsx</span><span class="comment">// timeline connexions SSE</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-tsx">ReportModal.tsx</span><span class="comment">// signalement contenu</span></span></div>
+<div class="tree-line"><span class="connector">        ├── </span><span class="entry"><span class="f-tsx">CookieBanner.tsx</span><span class="comment">// RGPD consentement cookies</span></span></div>
+<div class="tree-line"><span class="connector">        └── </span><span class="entry"><span class="f-tsx">ShareButtons.tsx</span></span></div>
+</div></div>
+</div>
+
+<!-- LIB -->
+<div class="section">
+<div class="section-header"><span class="icon">📚</span><span class="title">lib/ — Bibliothèques, helpers & config</span><span class="count">22 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">lib/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">prisma.ts</span><span class="comment">// Prisma client singleton (évite hot-reload leaks)</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">auth.ts</span><span class="comment">// config NextAuth — providers, callbacks, JWT</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">redis.ts</span><span class="comment">// client Upstash Redis</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">stripe.ts</span><span class="comment">// client Stripe + helpers produits</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">s3.ts</span><span class="comment">// client Cloudflare R2 (S3 SDK) + presigned URLs</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">email.ts</span><span class="comment">// client Resend + templates emails</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">socket.ts</span><span class="comment">// serveur Socket.io instance</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">ratelimit.ts</span><span class="comment">// Upstash ratelimit middleware helper</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">encryption.ts</span><span class="comment">// AES-256 chiffrement téléphones, messages</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">imageOptimizer.ts</span><span class="comment">// Sharp — resize, WebP, compress</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">validations/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">profile.schema.ts</span><span class="comment">// Zod schemas profil</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">user.schema.ts</span><span class="comment">// Zod schemas user</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">message.schema.ts</span><span class="comment">// Zod schemas messages</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-ts">payment.schema.ts</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">queries/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">profiles.ts</span><span class="comment">// requêtes Prisma profils (search, filter, top)</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">cities.ts</span><span class="comment">// requêtes villes + compteurs</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">photos.ts</span><span class="comment">// requêtes photos + ratings</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">comments.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-ts">stats.ts</span><span class="comment">// agrégations analytics</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">utils/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">slugify.ts</span><span class="comment">// génération slug URL propre</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">formatters.ts</span><span class="comment">// dates, prix, distances</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">cn.ts</span><span class="comment">// clsx + tailwind-merge helper</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-ts">seo.ts</span><span class="comment">// generateMetadata helper</span></span></div>
+</div></div>
+</div>
+
+<!-- SERVER ACTIONS -->
+<div class="section">
+<div class="section-header"><span class="icon">⚡</span><span class="title">actions/ — Server Actions Next.js 14</span><span class="count">8 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">actions/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">profile.actions.ts</span><span class="comment">// createProfile, updateProfile, deleteProfile</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">photo.actions.ts</span><span class="comment">// uploadPhoto, deletePhoto, setMainPhoto</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">video.actions.ts</span><span class="comment">// uploadVideo, deleteVideo</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">social.actions.ts</span><span class="comment">// followProfile, ratePhoto, postComment</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">payment.actions.ts</span><span class="comment">// createCheckoutSession, boostProfile</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">online.actions.ts</span><span class="comment">// updateOnlineStatus (heartbeat)</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">admin.actions.ts</span><span class="comment">// approveProfile, banUser, resolveReport</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">auth.actions.ts</span><span class="comment">// register, resetPassword, deleteAccount</span></span></div>
+</div></div>
+</div>
+
+<!-- HOOKS -->
+<div class="section">
+<div class="section-header"><span class="icon">🪝</span><span class="title">hooks/ — Custom React Hooks</span><span class="count">12 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">hooks/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useSocket.ts</span><span class="comment">// connexion Socket.io + reconnexion auto</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useOnlineStatus.ts</span><span class="comment">// heartbeat 30s + SSE statuts</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useLiveFeed.ts</span><span class="comment">// SSE flux activités</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useChat.ts</span><span class="comment">// messages, rooms, typing</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useInfiniteProfiles.ts</span><span class="comment">// scroll infini + React Query</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useFilters.ts</span><span class="comment">// état filtres recherche + URL params</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useFollow.ts</span><span class="comment">// toggle follow optimistic</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">usePhotoRating.ts</span><span class="comment">// noter photo avec debounce</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useGeolocation.ts</span><span class="comment">// position GPS → ville la plus proche</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useMediaQuery.ts</span><span class="comment">// responsive breakpoints</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">useLocalStorage.ts</span><span class="comment">// persist filtres préférés</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">useSessionTimeout.ts</span><span class="comment">// countdown + auto-logout</span></span></div>
+</div></div>
+</div>
+
+<!-- STORE -->
+<div class="section">
+<div class="section-header"><span class="icon">🗃️</span><span class="title">store/ — State Management Zustand</span><span class="count">5 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">store/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">authStore.ts</span><span class="comment">// user session, token, role</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">filterStore.ts</span><span class="comment">// filtres actifs listing</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">chatStore.ts</span><span class="comment">// rooms, messages non lus, typing</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">onlineStore.ts</span><span class="comment">// map profil_id → is_online</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">uiStore.ts</span><span class="comment">// modals, drawer, toast queue</span></span></div>
+</div></div>
+</div>
+
+<!-- TYPES -->
+<div class="section">
+<div class="section-header"><span class="icon">🔷</span><span class="title">types/ — Interfaces TypeScript</span><span class="count">8 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">types/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">profile.types.ts</span><span class="comment">// Profile, Photo, Video, Service</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">user.types.ts</span><span class="comment">// User, Session, Role</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">chat.types.ts</span><span class="comment">// Room, Message, TypingEvent</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">geo.types.ts</span><span class="comment">// City, Department, Country, Coordinates</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">payment.types.ts</span><span class="comment">// Payment, Product, BoostType</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">api.types.ts</span><span class="comment">// ApiResponse, Paginated, FilterParams</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">socket.types.ts</span><span class="comment">// événements Socket.io typés</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">next-auth.d.ts</span><span class="comment">// augmentation type Session NextAuth</span></span></div>
+</div></div>
+</div>
+
+<!-- I18N -->
+<div class="section">
+<div class="section-header"><span class="icon">🌍</span><span class="title">i18n/ — Internationalisation FR/EN</span><span class="count">8 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">i18n/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">config.ts</span><span class="comment">// locales supportées, locale par défaut</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">fr/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-json">common.json</span><span class="comment">// nav, boutons, labels communs</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-json">profile.json</span><span class="comment">// textes pages profil</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-json">seo.json</span><span class="comment">// titres, descriptions meta</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">en/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-json">common.json</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-json">profile.json</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-json">seo.json</span></span></div>
+</div></div>
+</div>
+
+<!-- MIDDLEWARE -->
+<div class="section">
+<div class="section-header"><span class="icon">🛡️</span><span class="title">middleware.ts + server/ — Middleware & WebSocket Server</span><span class="count">6 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">middleware.ts</span><span class="comment">            // protection routes, locale redirect, rate limit</span></div>
+<div class="tree-line"><span class="connector">server/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">index.ts</span><span class="comment">// serveur custom Node.js (Next.js + Socket.io)</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">socket.server.ts</span><span class="comment">// handlers events Socket.io</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">chat.handler.ts</span><span class="comment">// logique chat — join, message, leave</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">presence.handler.ts</span><span class="comment">// statuts online — connect, disconnect</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-ts">feed.handler.ts</span><span class="comment">// broadcast live feed events</span></span></div>
+</div></div>
+</div>
+
+<!-- PUBLIC -->
+<div class="section">
+<div class="section-header"><span class="icon">📦</span><span class="title">public/ — Assets statiques</span><span class="count">20+ fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">public/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">favicon.ico</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">favicon-32x32.png</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">apple-touch-icon.png</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">manifest.json</span><span class="comment">// PWA manifest</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">logo.svg</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">logo-dark.svg</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">og-default.jpg</span><span class="comment">// Open Graph image par défaut</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">placeholder-profile.jpg</span><span class="comment">// placeholder photo profil</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-img">placeholder-blur.jpg</span><span class="comment">// blur data URL Next.js Image</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-ts">sw.js</span><span class="comment">// Service Worker PWA</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">flags/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-img">fr.svg</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-img">en.svg</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-img">be.svg</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-img">lu.svg</span></span></div>
+</div></div>
+</div>
+
+<!-- TESTS -->
+<div class="section">
+<div class="section-header"><span class="icon">🧪</span><span class="title">tests/ — Tests automatisés</span><span class="count">15 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">tests/</span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">jest.config.ts</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-json">playwright.config.ts</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">unit/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">slugify.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">encryption.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">formatters.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-ts">validations.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">├── </span><span class="entry"><span class="f-dir">integration/</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">profiles.api.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   ├── </span><span class="entry"><span class="f-ts">auth.api.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">│   └── </span><span class="entry"><span class="f-ts">payments.api.test.ts</span></span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">e2e/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">homepage.spec.ts</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">search.spec.ts</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">profile.spec.ts</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-ts">auth.spec.ts</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-ts">chat.spec.ts</span></span></div>
+</div></div>
+</div>
+
+<!-- CI/CD -->
+<div class="section">
+<div class="section-header"><span class="icon">🚀</span><span class="title">.github/ — CI/CD GitHub Actions</span><span class="count">4 fichiers</span></div>
+<div class="section-body"><div class="tree">
+<div class="tree-line"><span class="connector">.github/</span></div>
+<div class="tree-line"><span class="connector">└── </span><span class="entry"><span class="f-dir">workflows/</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-sh">ci.yml</span><span class="comment">// lint + typecheck + tests unitaires</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-sh">e2e.yml</span><span class="comment">// tests Playwright sur PR</span></span></div>
+<div class="tree-line"><span class="connector">    ├── </span><span class="entry"><span class="f-sh">deploy-preview.yml</span><span class="comment">// déploiement Vercel preview branch</span></span></div>
+<div class="tree-line"><span class="connector">    └── </span><span class="entry"><span class="f-sh">deploy-prod.yml</span><span class="comment">// déploiement production sur main</span></span></div>
+</div></div>
+</div>
+
+</div><!-- /sections -->
+
+<div style="margin-top:32px; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:20px 24px; font-family:Arial,sans-serif;">
+  <div style="color:#7d8590;font-size:12px;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">RÉSUMÉ</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#58a6ff;font-size:18px;font-weight:700;">~280</div>
+      <div style="color:#7d8590;font-size:12px;">Fichiers totaux à coder</div>
+    </div>
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#3fb950;font-size:18px;font-weight:700;">38 routes</div>
+      <div style="color:#7d8590;font-size:12px;">Pages Next.js App Router</div>
+    </div>
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#f0883e;font-size:18px;font-weight:700;">26 endpoints</div>
+      <div style="color:#7d8590;font-size:12px;">API Route Handlers</div>
+    </div>
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#bc8cff;font-size:18px;font-weight:700;">55 composants</div>
+      <div style="color:#7d8590;font-size:12px;">React (UI + Features)</div>
+    </div>
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#ff7b72;font-size:18px;font-weight:700;">18 tables</div>
+      <div style="color:#7d8590;font-size:12px;">PostgreSQL 18</div>
+    </div>
+    <div style="background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;">
+      <div style="color:#56d364;font-size:18px;font-weight:700;">~92 jours</div>
+      <div style="color:#7d8590;font-size:12px;">Estimation développement</div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;color:#484f58;font-size:11px;font-family:Arial,sans-serif;text-align:center;">
+  escorte-fatal — Architecture Next.js 14 App Router · PostgreSQL 18 · Socket.io · Stripe · Cloudflare R2 — Mars 2026
+</div>
+
+</body>
+</html>
