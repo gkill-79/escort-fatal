@@ -108,6 +108,7 @@ model User {
   transactions        Transaction[]
   messages            Message[]            @relation("UserMessages")
   passwordResetTokens PasswordResetToken[]
+  kycRecord           KycRecord?
 
   @@index([email])
   @@index([username])
@@ -210,6 +211,7 @@ model Profile {
   bust        Int?     // cm
   nationality String?
   languages   String[] @default([])
+  categories  String[] @default([])
   hairColor   String?
   eyeColor    String?
 
@@ -230,6 +232,7 @@ model Profile {
   availability    Availability[]
   media           Media[]
   receivedReports Report[]         @relation("ReceivedReports")
+  mediaAssets     MediaAsset[]
 
   @@index([slug])
   @@index([cityId])
@@ -502,4 +505,78 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+// ─── Compliance & Security (18 U.S.C. § 2257) ─────────────────────────
+
+model KycRecord {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Encrypted data (AES-256-GCM)
+  encryptedRealName String   @db.Text
+  encryptedDob      String   @db.Text
+  
+  // Private S3 keys
+  idDocumentS3Key   String
+  selfieS3Key       String
+  
+  status            KycStatus @default(PENDING)
+  verificationId    String?   
+  
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+  @@map("kyc_records")
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REQUIRES_MANUAL_REVIEW
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminId     String   
+  action      String   
+  targetId    String?  
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// ─── Media Pipeline (Enterprise Queue) ──────────────────────────────
+
+model MediaAsset {
+  id               String   @id @default(cuid())
+  profileId        String
+  profile          Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  originalFilename String
+  fileType         String   // "IMAGE" or "VIDEO"
+  url              String?  // Final processed URL
+  hlsPlaylistUrl   String?  // Adaptive streaming for video
+  
+  status           MediaStatus @default(PROCESSING)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([status])
+  @@map("media_assets")
+}
+
+enum MediaStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED_MODERATION
 }

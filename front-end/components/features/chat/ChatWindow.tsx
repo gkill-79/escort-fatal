@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
-import { Send, ArrowLeft, Loader2, User } from "lucide-react";
+import { Send, ArrowLeft, Loader2, User, Video } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 
 interface ChatWindowProps {
@@ -9,9 +9,10 @@ interface ChatWindowProps {
   currentUserId: string;
   room: any;
   onBack: () => void;
+  onVideoCall: (targetId: string, targetName: string) => void;
 }
 
-export function ChatWindow({ roomId, socket, currentUserId, room, onBack }: ChatWindowProps) {
+export function ChatWindow({ roomId, socket, currentUserId, room, onBack, onVideoCall }: ChatWindowProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +48,7 @@ export function ChatWindow({ roomId, socket, currentUserId, room, onBack }: Chat
       });
 
     return () => { mounted = false; };
-  }, [roomId]);
+  }, [roomId, currentUserId, socket]);
 
   // Listen for socket events
   useEffect(() => {
@@ -201,6 +202,18 @@ export function ChatWindow({ roomId, socket, currentUserId, room, onBack }: Chat
           </h3>
           <p className="text-xs text-brand-400">En ligne</p>
         </div>
+
+        {/* Video Call Button */}
+        <button 
+          onClick={() => {
+             const targetId = isMember ? room?.profileId : room?.memberId;
+             onVideoCall(targetId, otherName || "Correspondant");
+          }}
+          className="ml-auto p-2.5 bg-brand-500/10 hover:bg-brand-500 text-brand-500 hover:text-white rounded-xl transition-all border border-brand-500/20"
+          title="Appel Vidéo"
+        >
+          <Video className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Messages */}

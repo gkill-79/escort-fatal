@@ -28,6 +28,19 @@ services:
     volumes:
       - redis_data:/data
 
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch_escorte_fatal
+    environment:
+      - MEILI_MASTER_KEY=TaCleSecreteSuperRobuste123!
+      - MEILI_NO_ANALYTICS=true
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  meilisearch_data:

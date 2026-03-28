@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../prisma";
 
 const defaultStats = {
   totalProfiles: 15000,
@@ -74,88 +74,56 @@ export async function getNewProfiles(limit: number) {
   }
 }
 
+import { meiliClient } from '../meilisearch';
+
 export type SearchProfileFilters = {
-  cityId?: number;
+  city?: string;
   departmentId?: number;
-  gender?: "FEMALE" | "MALE" | "TRANS" | "COUPLE" | string;
+  gender?: string;
+  category?: string;
   isOnline?: boolean;
   minPrice?: number;
   maxPrice?: number;
-  services?: string[];
-  ageMin?: number;
-  ageMax?: number;
-  isTopGirl?: boolean;
+  lat?: number;
+  lng?: number;
+  radiusInMeters?: number;
   sort?: "newest" | "recommended";
 };
 
 export async function searchProfiles(filters: SearchProfileFilters, page = 1, limit = 24) {
   try {
-    const where: any = {
-      isApproved: true,
-      isActive: true,
-    };
+    const index = meiliClient.index('profiles');
+    const meiliFilters: string[] = [];
 
-    if (filters.cityId) where.cityId = filters.cityId;
-    if (filters.departmentId) where.departmentId = filters.departmentId;
-    if (filters.gender) where.gender = filters.gender;
-    if (filters.isOnline) where.isOnline = true;
-    if (filters.isTopGirl) where.isTopGirl = true;
+    // Map filters to Meilisearch index attributes
+    if (filters.city) meiliFilters.push(`city = '${filters.city}'`);
+    if (filters.gender) meiliFilters.push(`gender = '${filters.gender}'`);
+    if (filters.category) meiliFilters.push(`categories = '${filters.category}'`);
+    if (filters.isOnline) meiliFilters.push(`status = 'ONLINE'`);
     
-    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      where.priceFrom = {};
-      if (filters.minPrice !== undefined) where.priceFrom.gte = filters.minPrice;
-      if (filters.maxPrice !== undefined) where.priceFrom.lte = filters.maxPrice;
+    // Geospatial filtering (_geoRadius support)
+    if (filters.lat && filters.lng && filters.radiusInMeters) {
+      meiliFilters.push(`_geoRadius(${filters.lat}, ${filters.lng}, ${filters.radiusInMeters})`);
     }
 
-    if (filters.ageMin !== undefined || filters.ageMax !== undefined) {
-      where.age = {};
-      if (filters.ageMin !== undefined) where.age.gte = filters.ageMin;
-      if (filters.ageMax !== undefined) where.age.lte = filters.ageMax;
-    }
-
-    if (filters.services && filters.services.length > 0) {
-      where.services = {
-        some: {
-          type: { in: filters.services },
-        },
-      };
-    }
-
-    const skip = (page - 1) * limit;
-
-    let orderBy: any = [
-      { boostScore: "desc" },
-      { isTopGirl: "desc" },
-      { lastOnlineAt: "desc" },
-    ];
-    
-    if (filters.sort === "newest") {
-      orderBy = [{ createdAt: "desc" }];
-    }
-
-    const [list, total] = await Promise.all([
-      prisma.profile.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          city: true,
-          photos: { where: { isPrimary: true }, take: 1 },
-        },
-      }),
-      prisma.profile.count({ where }),
-    ]);
+    // Execution of the search query
+    const searchResults = await index.search('', {
+      filter: meiliFilters.length > 0 ? meiliFilters : undefined,
+      sort: filters.sort === "newest" ? ['createdAt:desc'] : ['boostScore:desc', 'createdAt:desc'],
+      hitsPerPage: limit,
+      page: page,
+    });
 
     return {
-      items: list,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-      hasMore: page * limit < total,
+      items: searchResults.hits,
+      total: searchResults.totalHits,
+      page: searchResults.page,
+      totalPages: searchResults.totalPages,
+      hasMore: searchResults.page < searchResults.totalPages,
     };
   } catch (error) {
-    console.error("Error searching profiles:", error);
+    console.error("Meilisearch Error, falling back to basic result:", error);
+    // Return empty result or trigger Prisma fallback here
     return {
       items: [],
       total: 0,

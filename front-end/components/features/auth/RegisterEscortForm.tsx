@@ -21,6 +21,9 @@ const registerSchema = z
       required_error: "Veuillez sélectionner un genre",
     }),
     cityId: z.string().optional(),
+    // KYC 2257
+    realName: z.string().min(3, "Le nom légal est requis"),
+    dateOfBirth: z.string().min(1, "La date de naissance est requise"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
@@ -35,6 +38,9 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const [idDocumentFront, setIdDocumentFront] = useState<File | null>(null);
+  const [liveSelfie, setLiveSelfie] = useState<File | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -44,6 +50,8 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
     defaultValues: {
       gender: "FEMALE",
       cityId: "",
+      realName: "",
+      dateOfBirth: "",
     },
   });
 
@@ -52,27 +60,39 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
     setError(null);
 
     try {
-      const res = await fetchApi("/auth/register", {
+      if (!idDocumentFront || !liveSelfie) {
+        throw new Error("Veuillez télécharger votre pièce d'identité et votre selfie");
+      }
+
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formData.append("username", data.username);
+      formData.append("gender", data.gender);
+      if (data.cityId) formData.append("cityId", data.cityId);
+      
+      // 2257 Data
+      formData.append("realName", data.realName);
+      formData.append("dateOfBirth", data.dateOfBirth);
+      
+      // Biometrics
+      formData.append("idDocument", idDocumentFront);
+      formData.append("liveSelfie", liveSelfie);
+
+      const res = await fetch("/api/auth/register-escort", {
         method: "POST",
-        body: JSON.stringify({
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          role: "ESCORT",
-          gender: data.gender,
-          cityId: data.cityId ? parseInt(data.cityId, 10) : undefined,
-        }),
+        body: formData,
       });
 
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.message || "Une erreur est survenue");
+        throw new Error(json.message || "Une erreur est survenue lors de l'inscription KYC");
       }
 
       setIsSuccess(true);
       setTimeout(() => {
-        router.push("/login"); // Assume there's a /login page
+        router.push("/dashboard?kyc=pending");
       }, 3000);
     } catch (err: any) {
       setError(err.message);
@@ -181,6 +201,83 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
         {errors.confirmPassword && (
           <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
         )}
+      </div>
+
+      <div className="border-t border-white/10 pt-6 mt-6">
+        <h3 className="text-lg font-bold text-brand-400 mb-2 flex items-center gap-2">
+          <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse"></span>
+          Vérification Légale (Chiffré & Confidentiel)
+        </h3>
+        <p className="text-xs text-dark-400 mb-4 italic">
+          Conformité stricte au 18 U.S.C. § 2257. Ces données sont stockées dans une chambre forte chiffrée.
+        </p>
+
+        <div className="space-y-4">
+          {/* Real Name */}
+          <div>
+            <label className="block text-sm text-dark-300 font-medium mb-1.5">Nom Légal Complet</label>
+            <input
+              {...register("realName")}
+              type="text"
+              className="w-full bg-dark-900 border border-brand-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
+              placeholder="Prénom et Nom de famille"
+            />
+            {errors.realName && <p className="text-red-400 text-xs mt-1">{errors.realName.message}</p>}
+          </div>
+
+          {/* Date of Birth */}
+          <div>
+            <label className="block text-sm text-dark-300 font-medium mb-1.5">Date de Naissance</label>
+            <input
+              {...register("dateOfBirth")}
+              type="date"
+              className="w-full bg-dark-900 border border-brand-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
+            />
+            {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>}
+          </div>
+
+          {/* ID Document */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-dark-300 font-medium mb-2">Pièce d'identité</label>
+              <div className="relative group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setIdDocumentFront(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="id-upload"
+                />
+                <label 
+                  htmlFor="id-upload"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-white/5"
+                >
+                  <span className="text-xs text-dark-400">{idDocumentFront ? idDocumentFront.name : "Choisir un fichier"}</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-dark-300 font-medium mb-2">Selfie (Liveness)</label>
+              <div className="relative group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={(e) => setLiveSelfie(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="selfie-upload"
+                />
+                <label 
+                  htmlFor="selfie-upload"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-white/5"
+                >
+                  <span className="text-xs text-dark-400">{liveSelfie ? liveSelfie.name : "Prendre un selfie"}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <Button type="submit" fullWidth className="mt-2" disabled={isLoading}>

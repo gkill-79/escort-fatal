@@ -13,6 +13,11 @@ import citiesRouter from "./routes/cities";
 import authRouter from "./routes/auth";
 import mediaRouter from "./routes/media";
 import adminRouter from "./routes/admin";
+import { setupMeilisearch } from "./lib/meilisearch";
+import "./jobs/mediaProcessor"; // Initialize BullMQ Worker
+import { redis } from "./lib/redis";
+import onlineRouter from "./routes/online";
+import { chatHandler } from "./chat.handler";
 
 const app = express();
 const server = createServer(app);
@@ -39,10 +44,20 @@ app.use("/cities", citiesRouter);
 app.use("/auth", authRouter);
 app.use("/media", mediaRouter);
 app.use("/admin", adminRouter);
+app.use("/v2/online", onlineRouter);
 
 // --- Socket.io Logic (Moved from server/index.ts) ---
 io.on("connection", (socket) => {
   console.log(`Socket Connected: ${socket.id}`);
+  
+  const userId = socket.handshake.query.userId as string;
+  if (userId) {
+    socket.join(`user:${userId}`);
+    console.log(`User ${userId} joined their personal room.`);
+  }
+
+  // Use the specialized chat & WebRTC handler
+  chatHandler(socket as any, io as any, userId);
 
   socket.on("join_room", (roomId: string) => {
     socket.join(roomId);
@@ -91,12 +106,29 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("heartbeat", async (data: { userId: string }) => {
+    if (data.userId) {
+      // Use Redis Sorted Set (ZSET) to track online users with a timestamp score
+      await redis.zadd("online_users", Date.now(), data.userId);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`Socket Disconnected: ${socket.id}`);
   });
 });
 
+// Periodic Heartbeat Pruning (Runs every 60s)
+// Removes users who haven't sent a heartbeat in the last 2 minutes
+setInterval(async () => {
+  const threshold = Date.now() - 120000; // 2 minutes ago
+  await redis.zremrangebyscore("online_users", 0, threshold);
+}, 60000);
+
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`> Backend server listening on http://localhost:${PORT}`);
+  
+  // Initialize Enterprise Search (Meilisearch)
+  await setupMeilisearch();
 });

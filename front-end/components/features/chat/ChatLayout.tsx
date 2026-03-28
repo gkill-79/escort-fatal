@@ -5,6 +5,8 @@ import { io, Socket } from "socket.io-client";
 import { Loader2 } from "lucide-react";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatWindow } from "./ChatWindow";
+import { VideoCallOverlay } from "./VideoCallOverlay";
+import { toast } from "react-hot-toast";
 
 interface ChatLayoutProps {
   currentUserId: string;
@@ -16,6 +18,13 @@ export function ChatLayout({ currentUserId, initialRoomId }: ChatLayoutProps) {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(initialRoomId || null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Video Call State
+  const [callData, setCallData] = useState<{
+    targetId: string;
+    targetName: string;
+    isIncoming: boolean;
+  } | null>(null);
 
   // Load Rooms
   useEffect(() => {
@@ -43,18 +52,36 @@ export function ChatLayout({ currentUserId, initialRoomId }: ChatLayoutProps) {
     const socketInstance = io(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000", {
       path: "/socket.io",
       addTrailingSlash: false,
+      query: { userId: currentUserId } // Critical for personal room joining
     });
 
     socketInstance.on("connect", () => {
       console.log("Socket connected:", socketInstance.id);
     });
 
+    // Redis Heartbeat (Updates 'online_users' Sorted Set)
+    const heartbeatInterval = setInterval(() => {
+      socketInstance.emit("heartbeat", { userId: currentUserId });
+    }, 45000);
+
+    // Listen for Incoming Calls
+    socketInstance.on("webrtc:call-init", (data: { senderId: string, senderName: string }) => {
+       console.log("Incoming call from:", data.senderName);
+       setCallData({
+         targetId: data.senderId,
+         targetName: data.senderName,
+         isIncoming: true
+       });
+       toast.success(`Appel vidéo de ${data.senderName}`, { duration: 8000 });
+    });
+
     setSocket(socketInstance);
 
     return () => {
+      clearInterval(heartbeatInterval);
       socketInstance.disconnect();
     };
-  }, []);
+  }, [currentUserId]);
 
   // Whenever the active room changes, join that room
   useEffect(() => {
@@ -122,6 +149,10 @@ export function ChatLayout({ currentUserId, initialRoomId }: ChatLayoutProps) {
              currentUserId={currentUserId} 
              room={rooms.find(r => r.id === activeRoomId)}
              onBack={() => setActiveRoomId(null)}
+             onVideoCall={(targetId: string, targetName: string) => {
+                setCallData({ targetId, targetName, isIncoming: false });
+                socket.emit("webrtc:call-init", { targetId, senderName: currentUserId }); 
+             }}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-dark-500">
@@ -131,6 +162,18 @@ export function ChatLayout({ currentUserId, initialRoomId }: ChatLayoutProps) {
           </div>
         )}
       </div>
+
+      {/* VIDEO CALL OVERLAY */}
+      {callData && socket && (
+        <VideoCallOverlay 
+          socket={socket}
+          currentUserId={currentUserId}
+          targetId={callData.targetId}
+          targetName={callData.targetName}
+          isIncoming={callData.isIncoming}
+          onClose={() => setCallData(null)}
+        />
+      )}
     </div>
   );
 }

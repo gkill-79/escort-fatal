@@ -17,13 +17,29 @@ interface ServerToClientEvents {
   "typing:start": (payload: { roomId: string; userId: string; username: string; isTyping: boolean }) => void;
   "typing:stop": (payload: { roomId: string; userId: string; username: string; isTyping: boolean }) => void;
   "notification:new": (n: unknown) => void;
+  "webrtc:signal": (payload: { targetId: string; senderId: string; data: any }) => void;
+  "webrtc:call-init": (payload: { targetId: string; senderId: string; senderName: string }) => void;
 }
 
 export function chatHandler(
-  socket: Socket<ClientToServerEvents, ServerToClientEvents>,
-  io: Server<ClientToServerEvents, ServerToClientEvents>,
+  socket: Socket<any, any>,
+  io: Server<any, any>,
   userId?: string
 ) {
+  // --- WebRTC Signaling Relay ---
+  // Forward signaling data directly to the target user's session
+  socket.on("webrtc:signal", ({ targetId, data }) => {
+    if (!userId) return;
+    console.log(`[WebRTC] Relay signal from ${userId} to ${targetId}`);
+    socket.to(`user:${targetId}`).emit("webrtc:signal", { senderId: userId, data });
+  });
+
+  socket.on("webrtc:call-init", ({ targetId, senderName }) => {
+    if (!userId) return;
+    console.log(`[WebRTC] Call initiate from ${userId} (${senderName}) to ${targetId}`);
+    socket.to(`user:${targetId}`).emit("webrtc:call-init", { senderId: userId, senderName });
+  });
+
   socket.on("room:join", async (roomId: string) => {
     if (!userId) return;
     try {
