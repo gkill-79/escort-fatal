@@ -2,16 +2,21 @@
 
 import { useState, useTransition } from "react";
 import { formatTimeAgo } from "@/lib/utils";
-import { Ban, CheckCircle, Coins, Trash2 } from "lucide-react";
+import { Ban, CheckCircle, Coins, Trash2, Crown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { toggleUserBan, updateChatCredits, deleteUser } from "../actions";
+import { toggleUserBan, updateChatCredits, deleteUser, updateUserRole } from "../actions";
 import { toast } from "react-hot-toast";
 import type { User } from "@prisma/client";
 
-type UserRowData = Pick<
-  User,
-  "id" | "username" | "email" | "role" | "isActive" | "chatCredits" | "createdAt"
->;
+interface UserRowData {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  chatCredits: number;
+  createdAt: string | Date;
+}
 
 function getActionError(error: unknown) {
   if (error instanceof Error && error.message) return error.message;
@@ -31,6 +36,19 @@ export default function UserRow({ user }: { user: UserRowData }) {
         toast.error(getActionError(error));
       }
     });
+  };
+
+  const handlePromoteAdmin = () => {
+    if (confirm("Voulez-vous vraiment promouvoir cet utilisateur en Administrateur ?")) {
+      startTransition(async () => {
+        try {
+          await updateUserRole(user.id, "ADMIN");
+          toast.success("Utilisateur promu Administrateur.");
+        } catch (error: unknown) {
+          toast.error(getActionError(error));
+        }
+      });
+    }
   };
 
   const handleUpdateCredits = () => {
@@ -127,6 +145,18 @@ export default function UserRow({ user }: { user: UserRowData }) {
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center justify-end gap-2">
+          {user.role !== "ADMIN" && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={handlePromoteAdmin}
+              className="h-8 w-8 p-0 border border-purple-500/50 text-purple-400 hover:bg-purple-500 hover:text-white rounded-full transition-colors"
+              title="Promouvoir Administrateur"
+            >
+              <Crown className="w-4 h-4" />
+            </Button>
+          )}
           {user.role !== "ADMIN" && (
             <Button
               variant="outline"

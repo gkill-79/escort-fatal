@@ -207,3 +207,24 @@ export async function deleteUser(userId: string): Promise<void> {
     throw error;
   }
 }
+
+export async function updateUserRole(userId: string, newRole: string): Promise<void> {
+  try {
+    const session = await auth();
+    if (session?.user?.role !== "ADMIN") throw new Error("Accès refusé");
+
+    await fetchApi(`/admin/users/${userId}/role`, {
+      method: "POST",
+      body: JSON.stringify({ role: newRole }),
+      headers: { 
+        "x-user-id": session.user.id,
+        "x-user-role": session.user.role
+      }
+    });
+
+    revalidatePath('/admin/users');
+  } catch (error) {
+    console.error("[UPDATE_USER_ROLE]", error);
+    throw error;
+  }
+}

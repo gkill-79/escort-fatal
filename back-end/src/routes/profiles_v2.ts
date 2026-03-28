@@ -17,6 +17,27 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// GET /v2/profiles/latest - 20 most recent approved profiles
+router.get("/latest", async (req, res) => {
+  try {
+    const profiles = await prisma.profile.findMany({
+      where: { 
+        status: "APPROVED",
+        isActive: true
+      },
+      include: {
+        city: true,
+        photos: { where: { isPrimary: true, isApproved: true }, take: 1 }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    });
+    res.json(profiles);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // GET /profiles/top
 router.get("/top", async (req, res) => {
   try {

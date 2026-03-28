@@ -15,6 +15,21 @@ const isAdmin = (req: express.Request, res: express.Response, next: express.Next
 
 router.use(isAdmin);
 
+// GET /admin/stats - Summary for dashboard
+router.get("/stats", async (req, res) => {
+  try {
+    const [totalUsers, totalEscorts, pendingProfiles] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "ESCORT" } }),
+      prisma.profile.count({ where: { status: "PENDING" } })
+    ]);
+
+    res.json({ totalUsers, totalEscorts, pendingProfiles });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // GET /admin/users - List users with filters and pagination
 router.get("/users", async (req, res) => {
   try {
@@ -279,6 +294,23 @@ router.post("/users/:id/credits", async (req, res) => {
     const user = await prisma.user.update({
       where: { id },
       data: { chatCredits: credits }
+    });
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /admin/users/:id/role
+router.post("/users/:id/role", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { role: role as Role }
     });
 
     res.json(user);

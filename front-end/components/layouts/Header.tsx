@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Search, Menu, X, User, LogOut, Settings,
   ChevronDown, Flame, Video, Camera, MessageCircle,
-  Star, Users, Map, Coins, ShieldAlert
+  Star, Users, Map, Coins, ShieldAlert, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/Button";
@@ -66,7 +67,7 @@ export function Header() {
   const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
   const [activeDropdown,  setActiveDropdown]  = useState<string | null>(null);
   const [onlineCount,     setOnlineCount]     = useState(2649);
-  const session = null; // TODO: useSession() when NextAuth is configured
+  const { data: session } = useSession();
 
   useEffect(() => {
     const handler = () => setIsScrolled(window.scrollY > 8);
@@ -103,7 +104,7 @@ export function Header() {
               <span className="text-green-400 font-semibold">{onlineCount.toLocaleString()}</span>
               <span>en ligne</span>
             </span>
-            <Link href="/escort/annonce" className="hover:text-white transition-colors">Annonces</Link>
+            <Link href="/annonces" className="hover:text-white transition-colors">Annonces</Link>
           </div>
         </div>
       </div>
@@ -185,6 +186,11 @@ export function Header() {
 
             {session ? (
               <>
+                <Link href="/member/credits" className="hidden xl:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand-500 to-rose-600 hover:from-brand-400 hover:to-rose-500 text-white text-xs font-black rounded-xl shadow-lg shadow-brand-500/20 transition-all hover:scale-105 active:scale-95 group">
+                   <Zap className="w-3.5 h-3.5 fill-white group-hover:animate-pulse" />
+                   ACHETER DES CRÉDITS
+                </Link>
+
                 <div
                   className="relative h-full flex items-center"
                   onMouseEnter={() => setActiveDropdown("user")}
@@ -195,7 +201,7 @@ export function Header() {
                       <User className="w-3.5 h-3.5 text-brand-400" />
                     </div>
                     <span className="text-sm text-dark-300 hidden sm:block max-w-[100px] truncate">
-                      {(session as { user?: { username?: string; email?: string } })?.user?.username ?? (session as { user?: { email?: string } })?.user?.email}
+                      {session.user?.username || session.user?.email}
                     </span>
                     <ChevronDown className="w-3 h-3 text-dark-500" />
                   </button>
@@ -212,7 +218,7 @@ export function Header() {
                           </div>
                           <span className="bg-brand-500/20 text-brand-400 text-[10px] font-bold px-2 py-0.5 rounded-full">Recharger</span>
                         </Link>
-                        {(session as any)?.user?.role === "ADMIN" && (
+                        {(session.user as any)?.role === "ADMIN" && (
                           <>
                             <div className="my-1 border-t border-white/5" />
                             <Link href="/admin" className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-red-500/10 text-sm text-red-400 hover:text-red-300 transition-colors font-semibold">
@@ -237,14 +243,6 @@ export function Header() {
                 </Link>
                 <Link href="/register">
                   <Button size="sm">Inscription</Button>
-                </Link>
-                <Link
-                  href="/admin"
-                  className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
-                  title="Accès Administration"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  Admin
                 </Link>
               </>
             )}

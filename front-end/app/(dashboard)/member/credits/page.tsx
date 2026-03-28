@@ -1,83 +1,96 @@
-"use client";
-import { useState } from "react";
+import { Coins, Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Euro, CreditCard } from "lucide-react";
 
-const PACKS = [
-  { id: "pack_small", credits: 100, price: 10, label: "Basique", description: "Idéal pour commencer" },
-  { id: "pack_medium", credits: 500, price: 45, label: "Populaire", description: "Le meilleur rapport qualité/prix" },
-];
+export const metadata = {
+  title: "Acheter des Crédits | Escorte Fatal",
+};
 
 export default function CreditsPage() {
-  const [loading, setLoading] = useState<string | null>(null);
-
-  const handleCheckout = async (packId: string, price: number, credits: number) => {
-    setLoading(packId);
-    try {
-      const res = await fetch("/api/payments/checkout", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId, price, credits })
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert("Erreur lors de la création de la session de paiement");
-        setLoading(null);
-      }
-    } catch (error) {
-      console.error("[CHECKOUT_ERROR]", error);
-      alert("Erreur réseau");
-      setLoading(null);
-    }
-  };
+  const packs = [
+    { id: "pack_1", name: "Pack Découverte", credits: 50, price: 9.99, popular: false, description: "Idéal pour commencer." },
+    { id: "pack_2", name: "Pack Premium", credits: 150, price: 24.99, popular: true, description: "Le meilleur rapport qualité/prix." },
+    { id: "pack_3", name: "Pack Elite", credits: 500, price: 59.99, popular: false, description: "Pour une expérience sans limites." },
+  ];
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-white mb-4">Acheter des Crédits</h1>
-        <p className="text-slate-400 text-lg">Débloquez du contenu exclusif et envoyez des messages illimités.</p>
+    <div className="container mx-auto px-4 py-8 mt-12">
+      <div className="max-w-3xl mx-auto text-center mb-16">
+        <h1 className="text-4xl font-black text-white mb-4 tracking-tight">Rechargez votre solde</h1>
+        <p className="text-dark-400 text-lg">
+          Utilisez vos crédits pour contacter vos escortes préférées et débloquer du contenu exclusif.
+        </p>
       </div>
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {PACKS.map((pkg) => (
-          <div key={pkg.id} className="relative bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-colors rounded-3xl p-8 flex flex-col items-center group">
-            {pkg.id === "pack_medium" && (
-              <span className="absolute -top-4 bg-amber-500 text-slate-950 text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider">Recommandé</span>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {packs.map((pack) => (
+          <div 
+            key={pack.id} 
+            className={`relative flex flex-col bg-dark-800 border-2 rounded-3xl p-8 transition-all hover:scale-[1.02] ${
+              pack.popular ? "border-brand-500 shadow-[0_0_30px_rgba(244,63,94,0.15)]" : "border-white/5"
+            }`}
+          >
+            {pack.popular && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-1 text-xs font-black rounded-full uppercase flex items-center gap-1.5 ring-4 ring-dark-900">
+                <Zap className="w-3 h-3 fill-white" />
+                Le plus populaire
+              </div>
             )}
-            <h3 className="text-xl font-bold text-slate-400 mb-2">{pkg.label}</h3>
-            <p className="text-5xl font-black text-amber-500 mb-4">{pkg.credits} <span className="text-xl text-slate-500 font-medium">pts</span></p>
-            <p className="text-slate-400 mb-8 text-center">{pkg.description}</p>
-            
-            <div className="w-full mt-auto">
-              <Button 
-                onClick={() => handleCheckout(pkg.id, pkg.price, pkg.credits)} 
-                disabled={loading !== null}
-                className="w-full py-6 bg-amber-500 text-slate-950 font-bold text-lg hover:bg-amber-400 rounded-2xl flex items-center justify-center gap-2"
-              >
-                {loading === pkg.id ? (
-                  "Chargement..."
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5" />
-                    Payer {pkg.price} €
-                  </>
-                )}
-              </Button>
+
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-white mb-1">{pack.name}</h2>
+              <p className="text-dark-400 text-sm">{pack.description}</p>
             </div>
+
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-5xl font-black text-white tracking-tight">{pack.price}</span>
+              <span className="text-xl font-bold text-dark-400">€</span>
+            </div>
+
+            <div className="space-y-4 mb-10 flex-1">
+              <div className="flex items-center gap-3 text-white">
+                <div className="w-6 h-6 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 text-brand-500" />
+                </div>
+                <span className="font-bold text-lg">{pack.credits} Crédits</span>
+              </div>
+              <div className="flex items-center gap-3 text-dark-300">
+                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4" />
+                </div>
+                <span>Paiement sécurisé</span>
+              </div>
+              <div className="flex items-center gap-3 text-dark-300">
+                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4" />
+                </div>
+                <span>Accès instantané</span>
+              </div>
+            </div>
+
+            <Button 
+               fullWidth
+               className={pack.popular ? "bg-brand-500 hover:bg-brand-600 shadow-lg shadow-brand-500/20" : "bg-white/10 hover:bg-white/20"}
+            >
+              <Coins className="w-4 h-4 mr-2" />
+              Choisir ce pack
+            </Button>
           </div>
         ))}
       </div>
 
-      <div className="mt-12 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex items-start gap-4">
-        <div className="bg-emerald-500/10 p-2 rounded-lg">
-          <Euro className="w-6 h-6 text-emerald-500" />
+      <div className="mt-20 p-8 rounded-3xl bg-dark-800/50 border border-white/5 max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8">
+        <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center shrink-0">
+          <Zap className="w-8 h-8 text-brand-500" />
         </div>
         <div>
-          <h4 className="text-white font-bold mb-1">Paiement sécurisé via Stripe</h4>
-          <p className="text-slate-500 text-sm">Vos transactions sont chiffrées et sécurisées. Vos informations bancaires ne sont jamais stockées sur nos serveurs.</p>
+          <h3 className="text-xl font-bold text-white mb-2">Besoin de plus de visibilité ?</h3>
+          <p className="text-dark-400">
+            En tant qu'escorte, vous pouvez utiliser vos crédits pour booster vos annonces et apparaître en haut des résultats de recherche.
+          </p>
         </div>
+        <Button variant="outline" className="shrink-0 border-white/10 hover:bg-white/5">
+          En savoir plus
+        </Button>
       </div>
     </div>
   );
