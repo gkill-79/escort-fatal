@@ -14,6 +14,8 @@ import authRouter from "./routes/auth";
 import mediaRouter from "./routes/media";
 import adminRouter from "./routes/admin";
 import mediaV2Router from "./routes/media_v2";
+import radarRouter from "./routes/radar";
+import webrtcRouter from "./routes/webrtc";
 import { setupMeilisearch } from "./lib/meilisearch";
 import "./jobs/mediaProcessor"; // Initialize Media Pipeline Worker
 import "./jobs/scoreUpdater";   // Initialize Ranking & Boost Workers
@@ -48,6 +50,8 @@ app.use("/media", mediaRouter);
 app.use("/admin", adminRouter);
 app.use("/v2/media", mediaV2Router);
 app.use("/v2/online", onlineRouter);
+app.use("/radar", radarRouter);
+app.use("/webrtc", webrtcRouter);
 
 // --- Socket.io Logic (Moved from server/index.ts) ---
 io.on("connection", (socket) => {

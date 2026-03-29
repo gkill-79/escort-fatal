@@ -55,8 +55,9 @@ export function SearchHome() {
         if (filters.isOnline) query.append("isOnline", "true");
         if (filters.services.length > 0) query.append("services", filters.services.join(","));
 
-        // Limit defaults to 50 via API
-        const res = await fetch(`/api/search?${query.toString()}`);
+        // Limit defaults to 100 via Meilisearch API
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${API_URL}/radar?${query.toString()}`);
         if (!res.ok) throw new Error("Erreur Search Route");
         
         const data = await res.json();

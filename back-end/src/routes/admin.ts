@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../lib/prisma";
 import { Role } from "@prisma/client";
+import { getVaultPresignedUrl } from "../lib/s3";
 
 const router = express.Router();
 
@@ -328,6 +329,35 @@ router.delete("/users/:id", async (req, res) => {
     });
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /admin/kyc/:recordId/documents - Get Presigned URLs for KYC documents
+router.get("/kyc/:recordId/documents", async (req, res) => {
+  try {
+    const { recordId } = req.params;
+
+    const record = await prisma.kycRecord.findUnique({ where: { id: recordId } });
+    if (!record) {
+      return res.status(404).json({ error: "Record introuvable" });
+    }
+
+    const idDocumentUrl = await getVaultPresignedUrl(record.idDocumentS3Key);
+    const selfieUrl = await getVaultPresignedUrl(record.selfieS3Key);
+
+    const adminId = (req.headers["x-user-id"] as string) || "unknown_admin";
+    await prisma.auditLog.create({
+      data: {
+        adminId: adminId,
+        action: "VIEW_KYC_DOCUMENTS",
+        targetId: record.id
+      }
+    });
+
+    res.json({ idDocumentUrl, selfieUrl });
+  } catch (error) {
+    console.error("Erreur Admin KYC:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

@@ -1,60 +1,56 @@
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { verifyIpnSignature } from '@/lib/nowpayments';
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get("Stripe-Signature") as string;
-
-  if (!signature) {
-    return new NextResponse("Signature manquante", { status: 400 });
-  }
-
-  let event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body, 
-      signature, 
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    console.error(`[STRIPE_WEBHOOK_ERROR] ${err.message}`);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
-  }
+    // 1. Récupérer la signature envoyée par NOWPayments
+    const signature = req.headers.get('x-nowpayments-sig');
+    const rawBody = await req.text(); // On doit vérifier le texte brut
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as any;
-    
-    if (session.metadata?.userId && session.metadata?.credits) {
-      try {
-        await prisma.user.update({
-          where: { id: session.metadata.userId },
-          data: { 
-            credits: { 
-              increment: parseInt(session.metadata.credits) 
-            } 
-          }
-        });
-
-        // Create transaction record
-        await prisma.transaction.create({
-          data: {
-            userId: session.metadata.userId,
-            amount: session.amount_total / 100,
-            credits: parseInt(session.metadata.credits),
-            stripeId: session.id
-          }
-        });
-
-        console.log(`[STRIPE_WEBHOOK] Credits added to user ${session.metadata.userId}`);
-      } catch (prismaError) {
-        console.error("[STRIPE_WEBHOOK_PRISMA_ERROR]", prismaError);
-        return new NextResponse("Internal Server Error during DB update", { status: 500 });
-      }
+    if (!signature || !verifyIpnSignature(signature, rawBody)) {
+      return NextResponse.json({ error: 'Signature invalide.' }, { status: 403 });
     }
-  }
 
-  return new NextResponse("OK", { status: 200 });
+    const payload = JSON.parse(rawBody);
+
+    // 2. Vérifier le statut du paiement
+    // 'finished' signifie que l'argent est arrivé et confirmé sur la blockchain
+    if (payload.payment_status === 'finished') {
+      const orderId = payload.order_id;
+
+      // 3. Récupérer la commande
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      if (!order || order.status === 'COMPLETED') {
+        return NextResponse.json({ message: 'Commande déjà traitée ou introuvable.' });
+      }
+
+      // 4. Donner les crédits à l'utilisateur (Transaction ACID)
+      await prisma.$transaction(async (tx) => {
+        // Mettre à jour la commande
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: 'COMPLETED', cryptoCurrency: payload.pay_currency }
+        });
+
+        // Ajouter les crédits au portefeuille virtuel, si la commande représente des crédits
+        if (order.credits > 0) {
+          await tx.user.update({
+            where: { id: order.userId },
+            data: { 
+              credits: { increment: order.credits } // Utilisation de `credits` comme dans l'ancienne logique Stripe
+            }
+          });
+        }
+      });
+
+      console.log(`✅ Succès: ${order.credits} crédits/produit validés pour l'ordre ${orderId} (User: ${order.userId})`);
+    }
+
+    return NextResponse.json({ received: true });
+
+  } catch (error) {
+    console.error('Erreur Webhook Crypto:', error);
+    return NextResponse.json({ error: 'Erreur interne.' }, { status: 500 });
+  }
 }

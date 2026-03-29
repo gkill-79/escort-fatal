@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { encrypt2257Data } from '@/lib/encryption';
+import { uploadToPrivateVault } from '@/lib/s3';
+import crypto from 'crypto';
 
 /**
  * API Route: /api/auth/register-escort
@@ -34,10 +36,17 @@ export async function POST(req: Request) {
     // In production, send 'idDocument' and 'liveSelfie' to a service like Stripe Identity or Veriff.
     const kycProviderStatus = "APPROVED"; 
 
-    // --- 4. SECURE S3 UPLOAD (Simulation) ---
-    // In production, use @aws-sdk/client-s3 to upload to a PRIVATE bucket.
-    const idS3Key = `kyc/ids/${Date.now()}_id.jpg`;
-    const selfieS3Key = `kyc/selfies/${Date.now()}_selfie.jpg`;
+    // --- 4. SECURE S3 UPLOAD ---
+    const idBuffer = Buffer.from(await idDocument.arrayBuffer());
+    const selfieBuffer = Buffer.from(await liveSelfie.arrayBuffer());
+
+    const secureId = crypto.randomBytes(16).toString('hex');
+    const idFileName = `kyc/ids/${secureId}_${idDocument.name}`;
+    const selfieFileName = `kyc/selfies/${secureId}_${liveSelfie.name}`;
+
+    console.log("Upload des documents biométriques vers le coffre-fort AWS S3...");
+    const idS3Key = await uploadToPrivateVault(idBuffer, idFileName, idDocument.type);
+    const selfieS3Key = await uploadToPrivateVault(selfieBuffer, selfieFileName, liveSelfie.type);
 
     // --- 5. ENCRYPTION OF SENSITIVE 2257 DATA ---
     const encryptedRealName = encrypt2257Data(realName);

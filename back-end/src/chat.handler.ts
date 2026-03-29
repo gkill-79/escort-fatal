@@ -30,14 +30,50 @@ export function chatHandler(
   // Forward signaling data directly to the target user's session
   socket.on("webrtc:signal", ({ targetId, data }) => {
     if (!userId) return;
-    console.log(`[WebRTC] Relay signal from ${userId} to ${targetId}`);
     socket.to(`user:${targetId}`).emit("webrtc:signal", { senderId: userId, data });
   });
 
   socket.on("webrtc:call-init", ({ targetId, senderName }) => {
     if (!userId) return;
-    console.log(`[WebRTC] Call initiate from ${userId} (${senderName}) to ${targetId}`);
     socket.to(`user:${targetId}`).emit("webrtc:call-init", { senderId: userId, senderName });
+  });
+
+  // --- STRICT WEBRTC SIGNALING (V2) ---
+  socket.on("video-call-initiate", ({ targetUserId, roomId }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("video-call-incoming", {
+      fromUserId: userId,
+      roomId
+    });
+  });
+
+  socket.on("webrtc-offer", ({ targetUserId, offer }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("webrtc-offer", {
+      fromUserId: userId,
+      offer
+    });
+  });
+
+  socket.on("webrtc-answer", ({ targetUserId, answer }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("webrtc-answer", {
+      fromUserId: userId,
+      answer
+    });
+  });
+
+  socket.on("webrtc-ice-candidate", ({ targetUserId, candidate }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("webrtc-ice-candidate", {
+      fromUserId: userId,
+      candidate
+    });
+  });
+
+  socket.on("video-call-end", ({ targetUserId }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("video-call-ended");
   });
 
   socket.on("room:join", async (roomId: string) => {

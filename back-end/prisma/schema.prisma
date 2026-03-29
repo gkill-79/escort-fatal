@@ -111,6 +111,7 @@ model User {
   messages            Message[]            @relation("UserMessages")
   passwordResetTokens PasswordResetToken[]
   kycRecord           KycRecord?
+  orders              Order[]              @relation("UserOrders")
 
   @@index([email])
   @@index([username])
@@ -182,6 +183,8 @@ model Profile {
   whatsapp       String?
   cityId         Int?
   departmentId   Int?
+  latitude       Float?
+  longitude      Float?
 
   // Status
   isOnline     Boolean   @default(false)
@@ -611,4 +614,20 @@ enum CreditLogType {
   BOOST
   CHAT
   REFUND
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String
+  amount         Float
+  credits        Int
+  status         String      @default("PENDING") // PENDING, COMPLETED, CANCELED
+  cryptoCurrency String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation("UserOrders", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("orders")
 }
