@@ -26,6 +26,12 @@ cronQueue.add('reset-expired-boosts', {}, {
     removeOnComplete: true
 });
 
+// Schedule: Every 15 minutes for Activity Scores recalculation
+cronQueue.add('update-activity-scores', {}, { 
+  repeat: { pattern: '*/15 * * * *' },
+  removeOnComplete: true
+});
+
 /**
  * Worker to process recurring ranking & monetization tasks.
  * This ensures the "Marketplace" stays fresh and monetization is enforced.
@@ -102,6 +108,44 @@ export const cronWorker = new Worker('cron-jobs', async (job) => {
             console.error("❌ Failed to sync boost resets to Meilisearch:", meiliErr);
         }
     }
+  }
+
+  if (job.name === 'update-activity-scores') {
+    console.log("📈 Recalculating Dynamic Activity Scores for all active profiles...");
+    const { calculateActivityScore, calculateProfileCompleteness } = await import('../lib/algorithms/ranking');
+
+    const activeProfiles = await prisma.profile.findMany({
+      where: { isActive: true },
+      include: { photos: { select: { id: true } } }
+    });
+
+    console.log(`[Cron] Updating scores for ${activeProfiles.length} profiles.`);
+
+    for (const profile of activeProfiles) {
+      const completeness = calculateProfileCompleteness(profile);
+      const newScore = calculateActivityScore({
+        lastActivityAt: profile.lastActivityAt,
+        calendarUpdatedAt: profile.calendarUpdatedAt,
+        averageResponseTime: profile.averageResponseTime,
+        activeBoostUntil: profile.boostExpires, // Map boostExpires to check boost status
+        profileCompleteness: completeness
+      });
+
+      // Update if changed
+      if (newScore !== profile.activityScore) {
+        await prisma.profile.update({
+          where: { id: profile.id },
+          data: { activityScore: newScore }
+        });
+
+        // Sync to Meilisearch
+        await meiliClient.index('profiles').updateDocuments([{
+          id: profile.id,
+          activityScore: newScore
+        }]);
+      }
+    }
+    console.log("✅ Activity Scores updated and synced to Meilisearch.");
   }
 
 }, { connection });

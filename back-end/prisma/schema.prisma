@@ -197,6 +197,13 @@ model Profile {
   isOnline     Boolean   @default(false)
   lastOnlineAt DateTime?
   isVerified   Boolean   @default(false)
+  
+  // KYC Biométrique IDNow/IDCheck.io
+  kycStatus         KycStatus @default(NONE)
+  biometricVerified Boolean   @default(false)
+  kycReference      String?
+  kycUpdatedAt      DateTime?
+  
   isExclusive  Boolean   @default(false)
   isTopGirl    Boolean   @default(false)
   topGirlUntil DateTime?
@@ -207,6 +214,12 @@ model Profile {
   isActive     Boolean   @default(true)
   acceptsChat  Boolean   @default(true)
   status       ProfileStatus @default(PENDING)
+
+  // Métriques pour l'Algorithme de Ranking Dynamique
+  lastActivityAt      DateTime @default(now()) // Mis à jour à chaque connexion/action
+  calendarUpdatedAt   DateTime @default(now()) // Mis à jour quand l'escorte modifie ses dispos
+  averageResponseTime Int      @default(60)    // En minutes (calculé par le module de chat)
+  activityScore       Int      @default(0)     // Le score global calculé par notre algorithme (0-200)
 
   // Stats
   viewCount     Int   @default(0)
@@ -254,6 +267,7 @@ model Profile {
   @@index([isOnline])
   @@index([isTopGirl])
   @@index([isApproved, isActive])
+  @@index([activityScore(sort: Desc)])
   @@index([boostScore(sort: Desc)])
   @@map("profiles")
 }
@@ -547,6 +561,7 @@ model KycRecord {
 }
 
 enum KycStatus {
+  NONE
   PENDING
   APPROVED
   REJECTED

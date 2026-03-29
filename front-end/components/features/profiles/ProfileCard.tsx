@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, Clock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 
 interface ProfileCardProps {
   profile: {
@@ -15,8 +16,9 @@ interface ProfileCardProps {
     ratingAvg?: number;
     isOnline?: boolean;
     isTopGirl?: boolean;
-    isVerified?: boolean;
     isExclusive?: boolean;
+    averageResponseTime?: number;
+    calendarUpdatedAt?: string | Date;
     photos?: Array<{ url: string; thumbnailUrl?: string | null }>;
   };
   priority?: boolean;
@@ -43,12 +45,28 @@ export function ProfileCard({ profile, priority }: ProfileCardProps) {
           sizes="(max-width: 640px) 50vw, 280px"
           priority={priority}
         />
-        {profile.isOnline && (
-          <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-xs font-medium text-white">
+        
+        {/* Affichage du badge de vérification biométrique (IDCheck/IDNow) */}
+        {profile.biometricVerified && (
+          <div className="absolute top-2 left-2 z-10 w-full scale-75 origin-top-left drop-shadow-md">
+            <VerifiedBadge />
+          </div>
+        )}
+
+        {profile.isOnline && !profile.biometricVerified && (
+          <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-xs font-medium text-white shadow-lg">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             En ligne
           </span>
         )}
+
+        {profile.isOnline && profile.biometricVerified && (
+          <span className="absolute top-10 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-[10px] font-medium text-white shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            En ligne
+          </span>
+        )}
+        
         <div className="absolute top-2 right-2 flex gap-1">
           {profile.isTopGirl && (
             <span className="px-2 py-0.5 rounded-lg bg-amber-500/90 text-[10px] font-bold text-white">
@@ -59,6 +77,22 @@ export function ProfileCard({ profile, priority }: ProfileCardProps) {
             <span className="w-5 h-5 rounded-full bg-blue-500/90 flex items-center justify-center text-white text-[10px]">
               ✓
             </span>
+          )}
+        </div>
+
+        {/* Badges d'engagement (Gamification) */}
+        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-1.5 z-10">
+          {profile.averageResponseTime && profile.averageResponseTime <= 15 && (
+            <div className="flex items-center gap-1 bg-green-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-lg shadow-lg">
+              <Clock className="w-3 h-3" />
+              Répond en {profile.averageResponseTime} min
+            </div>
+          )}
+          {profile.calendarUpdatedAt && isCalendarRecent(profile.calendarUpdatedAt) && (
+            <div className="flex items-center gap-1 bg-blue-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-lg shadow-lg">
+              <Zap className="w-3 h-3 fill-current" />
+              Agenda à jour
+            </div>
           )}
         </div>
       </div>
@@ -84,4 +118,10 @@ export function ProfileCard({ profile, priority }: ProfileCardProps) {
       </div>
     </Link>
   );
+}
+
+function isCalendarRecent(date: string | Date) {
+  const diffTime = Math.abs(new Date().getTime() - new Date(date).getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+  return diffDays <= 1; // Mis à jour dans les dernières 24h
 }

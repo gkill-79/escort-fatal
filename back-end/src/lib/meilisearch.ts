@@ -18,14 +18,23 @@ export async function setupMeilisearch() {
     // Define filterable attributes for faceted search and geo-search
     await index.updateFilterableAttributes([
       'city', 
-      'status',      // e.g., 'ONLINE', 'OFFLINE'
-      'categories',  // e.g., 'TV/TS', 'Escort'
+      'status',      // e.g., 'APPROVED'
+      'categories',  // e.g., ['TV/TS', 'Escort']
       'gender',
-      '_geo'         // Virtual field for lat/lng
+      'isOnline',    // For "Is Available Now"
+      'priceFrom',   // For "Hourly Rate"
+      '_geo'         // Virtual field for lat/lng (radius search)
     ]);
     
     // Define sortable attributes for monetization (Boost) and recency
-    await index.updateSortableAttributes(['createdAt', 'boostScore']);
+    await index.updateSortableAttributes([
+      'createdAt', 
+      'updatedAt',
+      'activityScore', // New dynamic ranking score
+      'boostScore',
+      'priceFrom',
+      '_geo'
+    ]);
     
     console.log("✅ Meilisearch Index 'profiles' configured successfully");
   } catch (error) {

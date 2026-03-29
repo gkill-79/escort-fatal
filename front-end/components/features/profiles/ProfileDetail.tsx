@@ -10,7 +10,7 @@ import { ProfileServices } from "./ProfileServices";
 import { FollowButton } from "./FollowButton";
 import { ContactButton } from "./ContactButton";
 import { PhotoGallery } from "@/components/features/media/PhotoGallery";
-import { TopGirlBadge, OnlineBadge, VerifiedBadge, ExclusiveBadge } from "@/components/ui/Badge";
+import { TopGirlBadge, OnlineBadge, VerifiedBadge, ExclusiveBadge, BiometricBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { Profile } from "@/types/profile.types";
 
@@ -108,6 +108,15 @@ export function ProfileDetail({ profile, isFollowing, currentUserId }: ProfileDe
                 {profile.isVerified  && <VerifiedBadge />}
                 {profile.isExclusive && <ExclusiveBadge />}
               </div>
+
+              {profile.biometricVerified && (
+                <div className="mt-2 mb-2">
+                  <BiometricBadge />
+                  <p className="text-[10px] text-dark-400 mt-1 italic">
+                    L'identité de cette personne a été vérifiée par une intelligence artificielle biométrique (reconnaissance faciale et pièce d'identité).
+                  </p>
+                </div>
+              )}
 
               <div>
                 <h1 className="text-xl font-bold text-white leading-tight">

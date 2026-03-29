@@ -1,5 +1,5 @@
 import type { Socket, Server } from "socket.io";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "./lib/prisma";
 
 // Dictionnaire pour stocker les chronomètres (facturation à la minute)
 const activeBillingIntervals = new Map<string, NodeJS.Timeout>();
@@ -32,18 +32,18 @@ export function chatHandler(
 ) {
   // --- WebRTC Signaling Relay ---
   // Forward signaling data directly to the target user's session
-  socket.on("webrtc:signal", ({ targetId, data }) => {
+  socket.on("webrtc:signal", ({ targetId, data }: { targetId: string, data: any }) => {
     if (!userId) return;
     socket.to(`user:${targetId}`).emit("webrtc:signal", { senderId: userId, data });
   });
 
-  socket.on("webrtc:call-init", ({ targetId, senderName }) => {
+  socket.on("webrtc:call-init", ({ targetId, senderName }: { targetId: string, senderName: string }) => {
     if (!userId) return;
     socket.to(`user:${targetId}`).emit("webrtc:call-init", { senderId: userId, senderName });
   });
 
   // --- STRICT WEBRTC SIGNALING (V2) ---
-  socket.on("video-call-initiate", ({ targetUserId, roomId }) => {
+  socket.on("video-call-initiate", ({ targetUserId, roomId }: { targetUserId: string, roomId: string }) => {
     if (!userId) return;
     socket.to(`user:${targetUserId}`).emit("video-call-incoming", {
       fromUserId: userId,
@@ -51,7 +51,7 @@ export function chatHandler(
     });
   });
 
-  socket.on("webrtc-offer", ({ targetUserId, offer }) => {
+  socket.on("webrtc-offer", ({ targetUserId, offer }: { targetUserId: string, offer: any }) => {
     if (!userId) return;
     socket.to(`user:${targetUserId}`).emit("webrtc-offer", {
       fromUserId: userId,
@@ -59,7 +59,7 @@ export function chatHandler(
     });
   });
 
-  socket.on("webrtc-answer", ({ targetUserId, answer }) => {
+  socket.on("webrtc-answer", ({ targetUserId, answer }: { targetUserId: string, answer: any }) => {
     if (!userId) return;
     socket.to(`user:${targetUserId}`).emit("webrtc-answer", {
       fromUserId: userId,
@@ -67,7 +67,7 @@ export function chatHandler(
     });
   });
 
-  socket.on("webrtc-ice-candidate", ({ targetUserId, candidate }) => {
+  socket.on("webrtc-ice-candidate", ({ targetUserId, candidate }: { targetUserId: string, candidate: any }) => {
     if (!userId) return;
     socket.to(`user:${targetUserId}`).emit("webrtc-ice-candidate", {
       fromUserId: userId,
@@ -75,7 +75,7 @@ export function chatHandler(
     });
   });
 
-  socket.on("video-call-end", async ({ targetUserId, roomId }) => {
+  socket.on("video-call-end", async ({ targetUserId, roomId }: { targetUserId: string, roomId: string }) => {
     if (!userId) return;
     
     if (roomId) {
@@ -87,8 +87,26 @@ export function chatHandler(
     }
   });
 
+  // --- NOUVEAUX ÉVÉNEMENTS DEMANDÉS (V3) ---
+  
+  // Relaie n'importe quel signal WebRTC (offre/réponse/ice) générique
+  socket.on("webrtc-signal", (payload: { targetUserId: string, roomId: string, [key: string]: any }) => {
+    if (!userId) return;
+    socket.to(`user:${payload.targetUserId}`).emit("webrtc-signal", { ...payload, fromUserId: userId });
+  });
+
+  // Envoie une notification "Appel Entrant" à l'escorte
+  socket.on("request-private-show", ({ targetUserId, roomId }: { targetUserId: string, roomId: string }) => {
+    if (!userId) return;
+    socket.to(`user:${targetUserId}`).emit("incoming-video-call", {
+      fromUserId: userId,
+      roomId,
+      message: "Une demande de show privé est en attente..."
+    });
+  });
+
   // --- FACTURATION TEMPS RÉEL (WebRTC V2) ---
-  socket.on("video-call-accepted", async ({ targetUserId, roomId }) => {
+  socket.on("video-call-accepted", async ({ targetUserId, roomId }: { targetUserId: string, roomId: string }) => {
     if (!userId) return;
     const escortId = userId; // L'escorte qui accepte
     const clientId = targetUserId; // Le client qui a appelé
@@ -136,7 +154,7 @@ export function chatHandler(
       const room = await prisma.chatRoom.findFirst({
         where: {
           id: roomId,
-          OR: [{ memberId: userId }, { profile: { userId } }],
+          participants: { some: { id: userId } }
         },
       });
       if (room) socket.join(`room:${roomId}`);
@@ -149,20 +167,16 @@ export function chatHandler(
     socket.leave(`room:${roomId}`);
   });
 
-  socket.on("message:send", async ({ roomId, content, type = "TEXT" }) => {
+  socket.on("message:send", async ({ roomId, content, type = "TEXT" }: { roomId: string, content: string, type?: string }) => {
     if (!userId || !content?.trim()) return;
     // TODO: encrypt, save message, broadcast (see files (2) or (3) for full impl)
     io.to(`room:${roomId}`).emit("message:new", { roomId, content, type, senderId: userId });
   });
 
-  socket.on("message:read", async ({ roomId, messageId }) => {
+  socket.on("message:read", async ({ roomId, messageId }: { roomId: string, messageId: string }) => {
     if (!userId) return;
-    await prisma.message
-      .updateMany({
-        where: { id: messageId, roomId, senderId: { not: userId }, readAt: null },
-        data: { readAt: new Date() },
-      })
-      .catch(() => null);
+    // La table Message n'a pas encore de champ readAt dans le schéma actuel.
+    // TODO: Ajouter readAt à Message dans schema.prisma si nécessaire.
     socket.to(`room:${roomId}`).emit("message:read", { roomId, messageId });
   });
 

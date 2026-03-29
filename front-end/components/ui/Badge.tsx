@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils/cn";
+import { ShieldCheckIcon } from "@heroicons/react/24/solid";
 
 export function Badge({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
@@ -32,4 +33,13 @@ export function VerifiedBadge() {
 
 export function ExclusiveBadge() {
   return <Badge className="bg-purple-500/90 text-white">Exclusif</Badge>;
+}
+
+export function BiometricBadge() {
+  return (
+    <div className="flex items-center space-x-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md transform transition hover:scale-105">
+      <ShieldCheckIcon className="h-4 w-4 text-white" />
+      <span>Profil 100% Vérifié</span>
+    </div>
+  );
 }

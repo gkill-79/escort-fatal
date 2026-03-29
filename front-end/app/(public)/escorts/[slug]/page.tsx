@@ -10,6 +10,8 @@ type Props = {
   params: { slug: string };
 };
 
+export const revalidate = 1800; // ISR cache for 30 minutes
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = await getProfileBySlug(params.slug);
 
@@ -43,8 +45,42 @@ export default async function EscortProfilePage({ params }: Props) {
     }
   }
 
+  // Création du Schema.org (Person + Offer) ultra puissant pour ce secteur
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": profile.name,
+    "description": profile.bio,
+    "image": profile?.photos?.[0]?.url || "",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": profile.city?.name || "France",
+      "addressCountry": "FR"
+    },
+    ...((profile.ratingCount ?? 0) > 0 && {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": profile.ratingAvg,
+        "reviewCount": profile.ratingCount
+      }
+    }),
+    "makesOffer": {
+      "@type": "Offer",
+      "priceCurrency": "EUR",
+      "price": profile.priceFrom || 150,
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Prestation de compagnie"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       
       {/* Background styling for the profile page */}
       <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-brand-900/20 to-transparent -z-10" />

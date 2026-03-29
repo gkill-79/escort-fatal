@@ -55,4 +55,42 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /radar/search?lat=x&lng=y&radiusInMeters=50000&category=ESCORT&isOnline=true&maxPrice=300
+router.get("/search", async (req, res) => {
+  try {
+    const { lat, lng, radiusInMeters = 50000, category, isOnline, maxPrice } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: "Coordonnées GPS (lat, lng) requises pour le mode Radar." });
+    }
+
+    const index = meiliClient.index("profiles");
+    let filterArray = [`_geoRadius(${lat}, ${lng}, ${radiusInMeters})`];
+    filterArray.push(`status = 'APPROVED'`);
+
+    if (category) {
+      filterArray.push(`categories = '${category}'`);
+    }
+    if (isOnline === "true") {
+      filterArray.push(`isOnline = true`);
+    }
+    if (maxPrice) {
+      filterArray.push(`priceFrom <= ${parseInt(maxPrice as string)}`);
+    }
+
+    // Requête Meilisearch ultra-rapide
+    const searchResults = await index.search("", {
+      filter: filterArray.join(" AND "),
+      // Tri du plus proche au plus éloigné par défaut sur le radar
+      sort: [`_geoPoint(${lat}, ${lng}):asc`, "boostScore:desc"],
+      limit: 100
+    });
+
+    res.json(searchResults.hits);
+  } catch (error) {
+    console.error("Erreur Search Radar:", error);
+    res.status(500).json({ error: "Erreur lors de la recherche radar géo-spatiale." });
+  }
+});
+
 export default router;

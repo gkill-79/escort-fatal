@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { fetchApi } from "@/lib/api-client";
 import Link from "next/link";
 import { ShieldAlert, ShieldCheck, Users, MessageSquare, Star, ArrowRight, TrendingUp } from "lucide-react";
+import { RankingScore } from "@/components/features/dashboard/RankingScore";
 
 export default async function DashboardOverviewPage() {
   const session = await auth();
@@ -96,6 +97,14 @@ export default async function DashboardOverviewPage() {
         </div>
 
       </div>
+
+      {/* ─── Ranking & Visibility ─────────────────────────────────── */}
+      <RankingScore 
+        score={profile.activityScore}
+        lastActivityAt={profile.lastActivityAt}
+        calendarUpdatedAt={profile.calendarUpdatedAt}
+        averageResponseTime={profile.averageResponseTime}
+      />
 
       {/* ─── Actions Grid ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">

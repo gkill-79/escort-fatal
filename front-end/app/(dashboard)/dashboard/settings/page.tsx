@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { fetchApi } from "@/lib/api-client";
 import { ProfileSettingsForm } from "@/components/features/dashboard/ProfileSettingsForm";
+import { KycVerificationCard } from "@/components/features/dashboard/KycVerificationCard";
 
 export default async function DashboardSettingsPage() {
   const session = await auth();
@@ -43,12 +44,15 @@ export default async function DashboardSettingsPage() {
       </div>
 
       <div className="bg-dark-800/80 border border-white/5 shadow-sm rounded-2xl p-6 md:p-8 backdrop-blur-sm">
-        <ProfileSettingsForm 
-           defaultValues={{ ...profile, phone }} 
-           cities={cities} 
-           departments={departments} 
-        />
+          <ProfileSettingsForm 
+            defaultValues={{ ...profile, phone }} 
+            cities={cities} 
+            departments={departments} 
+          />
+        </div>
+        
+        {/* Module de vérification d'identité KYC biométrique par caméra */}
+        <KycVerificationCard profile={profile} />
       </div>
-    </div>
-  );
-}
+    );
+  }
