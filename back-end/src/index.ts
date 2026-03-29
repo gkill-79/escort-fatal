@@ -4,6 +4,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
@@ -39,6 +40,16 @@ const io = new SocketIOServer(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// --- Security: Rate Limiting ---
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 200, // 200 requests per 15 minutes
+  message: "Trop de requêtes depuis cette IP, veuillez réessayer après 15 minutes.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
 
 // --- Routes ---
 app.get("/health", (req, res) => {

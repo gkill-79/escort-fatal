@@ -47,3 +47,28 @@ next-env.d.ts
 # Dossiers archives / sauvegardes locales
 files/
 files */
+*.zip
+*.php
+composer.lock
+vendor/
+node_modules/
+.env*
+dist/
+build/
+.next/
+out/
+.pnp*
+
+# IDE & OS
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Project specific
+escorte-fatal-arborescence*.html
+*.zip
+ *.rar
+ *.7z
