@@ -13,8 +13,10 @@ import citiesRouter from "./routes/cities";
 import authRouter from "./routes/auth";
 import mediaRouter from "./routes/media";
 import adminRouter from "./routes/admin";
+import mediaV2Router from "./routes/media_v2";
 import { setupMeilisearch } from "./lib/meilisearch";
-import "./jobs/mediaProcessor"; // Initialize BullMQ Worker
+import "./jobs/mediaProcessor"; // Initialize Media Pipeline Worker
+import "./jobs/scoreUpdater";   // Initialize Ranking & Boost Workers
 import { redis } from "./lib/redis";
 import onlineRouter from "./routes/online";
 import { chatHandler } from "./chat.handler";
@@ -44,6 +46,7 @@ app.use("/cities", citiesRouter);
 app.use("/auth", authRouter);
 app.use("/media", mediaRouter);
 app.use("/admin", adminRouter);
+app.use("/v2/media", mediaV2Router);
 app.use("/v2/online", onlineRouter);
 
 // --- Socket.io Logic (Moved from server/index.ts) ---

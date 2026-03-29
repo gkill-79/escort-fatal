@@ -91,6 +91,7 @@ model User {
   resetTokenExpiresAt DateTime?
   chatCredits      Int       @default(0)
   credits          Int       @default(0)
+  creditsBalance   Int       @default(0) // Virtual wallet for monetization
   lastSeenAt       DateTime  @default(now())
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -106,6 +107,7 @@ model User {
   unlockedMedia       UnlockedMedia[]
   filedReports        Report[]             @relation("FiledReports")
   transactions        Transaction[]
+  creditLogs          CreditLog[]          @relation("UserCreditLogs")
   messages            Message[]            @relation("UserMessages")
   passwordResetTokens PasswordResetToken[]
   kycRecord           KycRecord?
@@ -188,8 +190,9 @@ model Profile {
   isExclusive  Boolean   @default(false)
   isTopGirl    Boolean   @default(false)
   topGirlUntil DateTime?
-  boostScore   Int       @default(0)
-  boostUntil   DateTime?
+  baseScore    Float     @default(1.0) // Organic quality score
+  boostScore   Float     @default(1.0) // Paid multiplier
+  boostExpires DateTime? // When the boost ends
   isApproved   Boolean   @default(false)
   isActive     Boolean   @default(true)
   acceptsChat  Boolean   @default(true)
@@ -566,6 +569,11 @@ model MediaAsset {
   
   status           MediaStatus @default(PROCESSING)
   
+  // Algorithmic Engagement & Ranking
+  upvotes          Int      @default(0)
+  downvotes        Int      @default(0)
+  hotScore         Float    @default(0.0) 
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -579,4 +587,28 @@ enum MediaStatus {
   COMPLETED
   FAILED
   REJECTED_MODERATION
+}
+
+// ─── Internal Ledger (Credit History) ───────────────────────────────
+
+model CreditLog {
+  id          String         @id @default(cuid())
+  userId      String
+  amount      Int            // POSITIVE for received/purchased, NEGATIVE for spent
+  type        CreditLogType
+  description String?
+  createdAt   DateTime       @default(now())
+
+  user        User           @relation("UserCreditLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("credit_logs")
+}
+
+enum CreditLogType {
+  PURCHASE
+  BOOST
+  CHAT
+  REFUND
 }
