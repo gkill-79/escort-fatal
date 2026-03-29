@@ -112,6 +112,10 @@ model User {
   passwordResetTokens PasswordResetToken[]
   kycRecord           KycRecord?
   orders              Order[]              @relation("UserOrders")
+  
+  // Appels Vidéos P2P
+  clientCalls         CallSession[]        @relation("ClientCalls")
+  escortCalls         CallSession[]        @relation("EscortCalls")
 
   @@index([email])
   @@index([username])
@@ -185,6 +189,9 @@ model Profile {
   departmentId   Int?
   latitude       Float?
   longitude      Float?
+
+  // Facturation des services virtuels
+  videoCallPricePerMin Int @default(50) // ex: 50 crédits la minute
 
   // Status
   isOnline     Boolean   @default(false)
@@ -630,4 +637,30 @@ model Order {
 
   @@index([userId])
   @@map("orders")
+}
+
+model CallSession {
+  id              String   @id @default(cuid())
+  roomId          String   @unique
+  
+  clientId        String
+  client          User     @relation("ClientCalls", fields: [clientId], references: [id])
+  
+  escortId        String
+  escort          User     @relation("EscortCalls", fields: [escortId], references: [id])
+  
+  status          CallStatus @default(ONGOING)
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  
+  costPerMinute   Int
+  totalBilled     Int      @default(0)
+  escortEarnings  Int      @default(0)
+}
+
+enum CallStatus {
+  ONGOING
+  COMPLETED
+  INSUFFICIENT_FUNDS
+  CANCELLED
 }

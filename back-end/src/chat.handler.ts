@@ -1,6 +1,10 @@
 import type { Socket, Server } from "socket.io";
 import { prisma } from "@/lib/prisma";
 
+// Dictionnaire pour stocker les chronomètres (facturation à la minute)
+const activeBillingIntervals = new Map<string, NodeJS.Timeout>();
+const PLATFORM_FEE_PERCENTAGE = 0.20; // 20% platform fee
+
 // Types minimal pour le handler (à étendre dans types/socket.types.ts)
 interface ClientToServerEvents {
   "room:join": (roomId: string) => void;
@@ -71,9 +75,59 @@ export function chatHandler(
     });
   });
 
-  socket.on("video-call-end", ({ targetUserId }) => {
+  socket.on("video-call-end", async ({ targetUserId, roomId }) => {
     if (!userId) return;
-    socket.to(`user:${targetUserId}`).emit("video-call-ended");
+    
+    if (roomId) {
+      await terminateCall(roomId, io, "COMPLETED");
+    }
+
+    if (targetUserId) {
+      socket.to(`user:${targetUserId}`).emit("video-call-ended");
+    }
+  });
+
+  // --- FACTURATION TEMPS RÉEL (WebRTC V2) ---
+  socket.on("video-call-accepted", async ({ targetUserId, roomId }) => {
+    if (!userId) return;
+    const escortId = userId; // L'escorte qui accepte
+    const clientId = targetUserId; // Le client qui a appelé
+
+    try {
+      // A. Récupérer le prix de l'escorte
+      const escortProfile = await prisma.profile.findUnique({ where: { userId: escortId } });
+      const pricePerMin = escortProfile?.videoCallPricePerMin || 50;
+
+      // B. Vérifier le solde du client
+      const client = await prisma.user.findUnique({ where: { id: clientId } });
+      if (!client || client.creditsBalance < pricePerMin) {
+        io.to(roomId).emit("call-error", { message: "Fonds insuffisants pour démarrer l'appel." });
+        return;
+      }
+
+      // C. Créer la session en BDD
+      await prisma.callSession.create({
+        data: { roomId, clientId, escortId, costPerMinute: pricePerMin }
+      });
+
+      // D. Prévenir les deux partis que l'appel commence officiellement
+      io.to(roomId).emit("video-call-started");
+
+      // E. LANCER LE CHRONOMÈTRE (Chaque 60 secondes)
+      const interval = setInterval(async () => {
+        await processBillingTick(roomId, clientId, escortId, pricePerMin, io);
+      }, 60000);
+
+      activeBillingIntervals.set(roomId, interval);
+    } catch (err) {
+      console.error("Erreur video-call-accepted:", err);
+    }
+  });
+
+  socket.on("disconnect", async () => {
+    // Si l'utilisateur quitte violemment, on pourrait chercher ses rooms 
+    // et couper ses appels. Pour l'instant, ça se coupera quand 
+    // l'autre côté émet 'video-call-end' ou quand le heartbeat P2P s'arrête.
   });
 
   socket.on("room:join", async (roomId: string) => {
@@ -131,4 +185,78 @@ export function chatHandler(
       isTyping: false,
     });
   });
+}
+
+/**
+ * Fonction cœur : S'exécute chaque minute pour débiter le client
+ */
+async function processBillingTick(roomId: string, clientId: string, escortId: string, pricePerMin: number, io: Server) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const client = await tx.user.findUnique({ where: { id: clientId } });
+      
+      if (!client || client.creditsBalance < pricePerMin) {
+        throw new Error('INSUFFICIENT_FUNDS');
+      }
+
+      const escortCut = Math.floor(pricePerMin * (1 - PLATFORM_FEE_PERCENTAGE));
+
+      // 1. Débiter le client
+      await tx.user.update({
+        where: { id: clientId },
+        data: { creditsBalance: { decrement: pricePerMin } }
+      });
+
+      // 2. Créditer l'escorte
+      await tx.user.update({
+        where: { id: escortId },
+        data: { creditsBalance: { increment: escortCut } } 
+      });
+
+      // 3. Mettre à jour les stats de l'appel
+      await tx.callSession.update({
+        where: { roomId },
+        data: { 
+          totalBilled: { increment: pricePerMin },
+          escortEarnings: { increment: escortCut }
+        }
+      });
+
+      // (Optionnel) Avertissement solde faible (< 3 min)
+      const remainingBalance = client.creditsBalance - pricePerMin;
+      if (remainingBalance < pricePerMin * 3) {
+        // Envoie l'alerte au client spécifiquement
+        io.to(`user:${clientId}`).emit('call-warning-funds', { 
+          remainingMinutes: Math.floor(remainingBalance / pricePerMin) 
+        });
+      }
+    });
+
+  } catch (error: any) {
+    if (error.message === 'INSUFFICIENT_FUNDS') {
+      await terminateCall(roomId, io, 'INSUFFICIENT_FUNDS');
+    } else {
+      console.error("Erreur critique facturation:", error);
+    }
+  }
+}
+
+/**
+ * Arrête le chronomètre et ferme l'appel proprement
+ */
+async function terminateCall(roomId: string, io: Server, status: 'COMPLETED' | 'INSUFFICIENT_FUNDS') {
+  const interval = activeBillingIntervals.get(roomId);
+  if (interval) {
+    clearInterval(interval);
+    activeBillingIntervals.delete(roomId);
+  }
+
+  try {
+    await prisma.callSession.updateMany({
+      where: { roomId, status: 'ONGOING' },
+      data: { status, endTime: new Date() }
+    });
+  } catch(e) { /* ignore si déjà clos */ }
+
+  io.to(roomId).emit('call-force-ended', { reason: status });
 }
