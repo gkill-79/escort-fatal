@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
-import { verifyJwt } from "../../middleware/auth.middleware";
+import { verifyJwt } from "../middleware/auth.middleware";
 
 const prisma = new PrismaClient();
 const router = Router();
