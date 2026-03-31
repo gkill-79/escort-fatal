@@ -6,60 +6,72 @@ import { Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface CheckoutButtonProps {
-  productKey: string;
-  label?: string;
-  price?: string;
-  variant?: "primary" | "outline" | "VIP";
+  serviceId: string;
+  escortId: string;
+  price: number;
+  title: string;
 }
 
-export function CheckoutButton({ productKey, label = "Acheter", price, variant = "primary" }: CheckoutButtonProps) {
-  const [loading, setLoading] = useState(false);
+export function CheckoutButton({ serviceId, escortId, price, title }: CheckoutButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleCheckout = async () => {
-    setLoading(true);
+  const onCheckout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     try {
-      const res = await fetch("/api/payments/checkout", {
+      setIsLoading(true);
+      
+      const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productKey }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          serviceId,
+          escortId,
+          price,
+          title,
+        }),
       });
 
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Une erreur est survenue");
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Veuillez vous connecter pour réserver.");
+          return;
+        }
+        const errorData = await response.text();
+        throw new Error(errorData || "Une erreur est survenue.");
       }
 
+      const data = await response.json();
+      
       if (data.url) {
-        window.location.href = data.url; // Redirect directly to Stripe
+        window.location.assign(data.url);
+      } else {
+        throw new Error("URL de redirection manquante.");
       }
     } catch (error: any) {
-      toast.error(error.message, { style: { background: "#333", color: "#fff" } });
+      console.error("Checkout error:", error);
+      toast.error(error.message || "Erreur lors de la redirection vers le paiement.");
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const getVariantStyles = () => {
-    switch (variant) {
-      case "VIP": return "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-none shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)]";
-      case "outline": return "bg-transparent border border-white/20 text-white hover:bg-white/5";
-      default: return "bg-brand-500 hover:bg-brand-600 text-white border-none";
+      setIsLoading(false);
     }
   };
 
   return (
     <Button 
-      fullWidth 
-      onClick={handleCheckout} 
-      disabled={loading}
-      className={`${getVariantStyles()} transition-all font-bold h-12 flex items-center justify-between px-5`}
+      onClick={onCheckout} 
+      disabled={isLoading || !price}
+      className="flex items-center justify-center gap-2"
+      size="sm"
     >
-      <div className="flex items-center gap-2">
-         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
-         <span>{loading ? "Redirection..." : label}</span>
-      </div>
-      {price && <span className="font-extrabold text-lg tracking-tight">{price}</span>}
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <ShoppingCart className="w-4 h-4" />
+      )}
+      {price ? `Réserver (${price}€)` : "Sur demande"}
     </Button>
   );
 }

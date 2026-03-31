@@ -4,12 +4,14 @@ import { Flame, Users, MapPin, Video, ChevronRight, Zap } from "lucide-react";
 import { getTopGirls, getOnlineProfiles, getSiteStats, getNewProfiles } from "@/lib/queries/profiles";
 import { getPopularCities } from "@/lib/queries/cities";
 import { ProfileCard } from "@/components/features/profiles/ProfileCard";
+import type { ProfileItem } from "@/components/features/profiles/ProfileCard";
 import { LiveFeedWidget } from "@/components/features/misc/LiveFeedWidget";
 import { SearchHome } from "@/components/features/search/SearchHome";
 import { Radar } from "@/components/features/radar/Radar";
 import { Button } from "@/components/ui/Button";
 import { formatCount } from "@/lib/utils";
 import { Header } from "@/components/layouts/Header";
+
 
 export const metadata: Metadata = {
   title: "Escorte Fatal — Annonces Escortes France",
@@ -109,8 +111,8 @@ export default async function HomePage() {
                 href="/escorts?isTopGirl=true"
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 lg:gap-4">
-                {topGirls.slice(0, 24).map((p: unknown, i: number) => (
-                  <ProfileCard key={(p as { id: string }).id} profile={p as never} priority={i < 8} />
+                {Array.isArray(topGirls) && topGirls.slice(0, 24).map((p: ProfileItem, i: number) => (
+                  <ProfileCard key={p.id} profile={p} priority={i < 8} />
                 ))}
               </div>
               <div className="mt-6 text-center">
@@ -131,8 +133,8 @@ export default async function HomePage() {
                 href="/escorts?isOnline=true"
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 lg:gap-4">
-                {onlineProfiles.slice(0, 12).map((p: unknown) => (
-                  <ProfileCard key={(p as { id: string }).id} profile={p as never} />
+                {Array.isArray(onlineProfiles) && onlineProfiles.slice(0, 12).map((p: ProfileItem) => (
+                  <ProfileCard key={p.id} profile={p} />
                 ))}
               </div>
               <div className="mt-6 text-center">
@@ -153,8 +155,8 @@ export default async function HomePage() {
                 href="/escorts?sort=newest"
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 lg:gap-4">
-                {newProfiles.slice(0, 12).map((p: unknown) => (
-                  <ProfileCard key={(p as { id: string }).id} profile={p as never} />
+                {Array.isArray(newProfiles) && newProfiles.slice(0, 12).map((p: ProfileItem) => (
+                  <ProfileCard key={p.id} profile={p} />
                 ))}
               </div>
             </section>

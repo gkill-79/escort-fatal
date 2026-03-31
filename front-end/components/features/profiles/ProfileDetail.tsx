@@ -53,7 +53,11 @@ export function ProfileDetail({ profile, isFollowing, currentUserId }: ProfileDe
 
           <div className="bg-dark-800/50 rounded-2xl border border-white/5 p-5">
             <h2 className="text-xs font-bold text-dark-500 uppercase tracking-widest mb-3">Services</h2>
-            <ProfileServices services={(profile.services ?? []) as { type: string; description?: string | null; price?: number | null }[]} editable={!!isOwn} />
+            <ProfileServices 
+              services={(profile.services ?? []) as { id?: string; type: string; description?: string | null; price?: number | null }[]} 
+              editable={!!isOwn}
+              escortId={profile.id}
+            />
           </div>
 
           <div className="bg-dark-800/50 rounded-2xl border border-white/5 p-5">

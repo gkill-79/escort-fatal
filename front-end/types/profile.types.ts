@@ -12,6 +12,7 @@ export interface Profile {
   isVerified?: boolean;
   isTopGirl?: boolean;
   isExclusive?: boolean;
+  biometricVerified?: boolean;
   viewCount?: number;
   followerCount?: number;
   ratingAvg?: number;

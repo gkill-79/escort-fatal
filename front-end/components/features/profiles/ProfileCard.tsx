@@ -6,21 +6,26 @@ import { MapPin, Star, Clock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 
+export interface ProfileItem {
+  id: string;
+  slug?: string | null;
+  name: string;
+  age?: number | null;
+  city?: { name: string } | null;
+  ratingAvg?: number | null;
+  isOnline?: boolean | null;
+  isTopGirl?: boolean | null;
+  isExclusive?: boolean | null;
+  isVerified?: boolean | null;
+  biometricVerified?: boolean | null;
+  userId?: string | null;
+  averageResponseTime?: number | null;
+  calendarUpdatedAt?: string | Date | null;
+  photos?: Array<{ url: string; thumbnailUrl?: string | null }>;
+}
+
 interface ProfileCardProps {
-  profile: {
-    id: string;
-    slug: string;
-    name: string;
-    age?: number | null;
-    city?: { name: string } | null;
-    ratingAvg?: number;
-    isOnline?: boolean;
-    isTopGirl?: boolean;
-    isExclusive?: boolean;
-    averageResponseTime?: number;
-    calendarUpdatedAt?: string | Date;
-    photos?: Array<{ url: string; thumbnailUrl?: string | null }>;
-  };
+  profile: ProfileItem;
   priority?: boolean;
 }
 
@@ -30,7 +35,7 @@ export function ProfileCard({ profile, priority }: ProfileCardProps) {
 
   return (
     <Link
-      href={`/escort/${profile.slug}`}
+      href={profile.slug ? `/escorts/${profile.slug}` : "#"}
       className={cn(
         "group block rounded-2xl overflow-hidden border border-white/5 bg-dark-800/50",
         "hover:border-brand-500/30 hover:shadow-lg hover:shadow-brand-500/5 transition-all"
@@ -53,15 +58,14 @@ export function ProfileCard({ profile, priority }: ProfileCardProps) {
           </div>
         )}
 
-        {profile.isOnline && !profile.biometricVerified && (
-          <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-xs font-medium text-white shadow-lg">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            En ligne
-          </span>
-        )}
-
-        {profile.isOnline && profile.biometricVerified && (
-          <span className="absolute top-10 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-[10px] font-medium text-white shadow-lg">
+        {/* Badge "En ligne" — positionné dynamiquement selon la présence du badge vérifié */}
+        {profile.isOnline && (
+          <span 
+            className={cn(
+              "absolute left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/90 text-xs font-medium text-white shadow-lg transition-all",
+              profile.biometricVerified ? "top-10" : "top-2"
+            )}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             En ligne
           </span>

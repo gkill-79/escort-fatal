@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { searchProfiles } from "@/lib/queries/profiles";
 import { fetchApi } from "@/lib/api-client";
 import { ProfileCard } from "@/components/features/profiles/ProfileCard";
+import type { ProfileItem } from "@/components/features/profiles/ProfileCard";
 import { SearchFilters } from "@/components/features/search/SearchFilters";
 import { Flame } from "lucide-react";
 
@@ -58,12 +59,12 @@ export default async function EscortsSearchPage({ searchParams }: SearchPageProp
           {/* Listing */}
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
-              {searchResult.items.map((profile: any, index: number) => (
-                <ProfileCard key={profile.id} profile={profile as never} priority={index < 4} />
+              {Array.isArray(searchResult?.items) && searchResult.items.map((profile: ProfileItem, index: number) => (
+                <ProfileCard key={profile.id} profile={profile} priority={index < 4} />
               ))}
             </div>
 
-            {searchResult.items.length === 0 && (
+            {(!Array.isArray(searchResult?.items) || searchResult.items.length === 0) && (
               <div className="py-20 text-center border border-dashed border-white/10 rounded-2xl">
                 <p className="text-dark-400">Aucun profil ne correspond à votre recherche.</p>
               </div>
