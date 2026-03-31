@@ -7,18 +7,21 @@ export async function POST(req: Request) {
     const session = await auth();
     
     if (!session || !session.user) {
-      return new NextResponse("Non autorisé", { status: 401 });
-    }
-
-    if (!stripe) {
-      return new NextResponse("Stripe n'est pas configuré", { status: 500 });
+      return NextResponse.json({ error: "Non autorisé, veuillez vous connecter" }, { status: 401 });
     }
 
     const body = await req.json();
     const { serviceId, escortId, price, title } = body;
 
-    if (!serviceId || !price) {
-      return new NextResponse("Données manquantes", { status: 400 });
+    if (!price || !escortId) {
+      return NextResponse.json({ error: "Données manquantes (prix ou escortId)" }, { status:400 });
+    }
+
+    // fallback simulation if Stripe is not configured
+    if (!stripe) {
+      console.warn("[CHECKOUT] Stripe not configured, simulating success.");
+      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/success`;
+      return NextResponse.json({ url: successUrl, simulated: true });
     }
 
     // Créer la session Stripe
@@ -30,10 +33,10 @@ export async function POST(req: Request) {
           price_data: {
             currency: "eur",
             product_data: {
-              name: `Prestation: ${title}`,
+              name: `Prestation: ${title || 'Service'}`,
               description: `Réservation avec l'escort ID: ${escortId}`,
             },
-            unit_amount: Math.round(price * 100), // Stripe prend des centimes
+            unit_amount: Math.round(price * 100), 
           },
           quantity: 1,
         },
@@ -41,16 +44,18 @@ export async function POST(req: Request) {
       metadata: {
         userId: session.user.id,
         escortId,
-        serviceId,
+        serviceId: serviceId || "default",
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/escorts/${escortId}`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/escorts/${escortId}`,
     });
 
     return NextResponse.json({ url: stripeSession.url });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("[CHECKOUT_ERROR]", error);
-    return new NextResponse("Erreur interne", { status: 500 });
+    return NextResponse.json({ 
+      error: "Erreur interne du serveur lors de la création de la session de paiement." 
+    }, { status: 500 });
   }
 }

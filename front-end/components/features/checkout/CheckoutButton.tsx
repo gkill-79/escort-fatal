@@ -6,13 +6,13 @@ import { Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface CheckoutButtonProps {
-  serviceId: string;
+  serviceId?: string;
   escortId: string;
   price: number;
   title: string;
 }
 
-export function CheckoutButton({ serviceId, escortId, price, title }: CheckoutButtonProps) {
+export function CheckoutButton({ serviceId = "default-service", escortId, price, title }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const onCheckout = async (e: React.MouseEvent) => {
@@ -24,9 +24,7 @@ export function CheckoutButton({ serviceId, escortId, price, title }: CheckoutBu
       
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceId,
           escortId,
@@ -35,25 +33,25 @@ export function CheckoutButton({ serviceId, escortId, price, title }: CheckoutBu
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
         if (response.status === 401) {
           toast.error("Veuillez vous connecter pour réserver.");
           return;
         }
-        const errorData = await response.text();
-        throw new Error(errorData || "Une erreur est survenue.");
+        throw new Error(data.error || "Une erreur est survenue lors de la réservation.");
       }
-
-      const data = await response.json();
       
+      // Redirect to Stripe or Success page simulation
       if (data.url) {
         window.location.assign(data.url);
       } else {
-        throw new Error("URL de redirection manquante.");
+        toast.success("Demande envoyée !");
       }
     } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast.error(error.message || "Erreur lors de la redirection vers le paiement.");
+      console.error("[CHECKOUT_BUTTON_ERROR]", error);
+      toast.error(error.message || "Impossible de joindre le serveur de paiement.");
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +61,8 @@ export function CheckoutButton({ serviceId, escortId, price, title }: CheckoutBu
     <Button 
       onClick={onCheckout} 
       disabled={isLoading || !price}
-      className="flex items-center justify-center gap-2"
+      className="flex items-center justify-center gap-2 min-w-[140px]"
+      variant="primary"
       size="sm"
     >
       {isLoading ? (

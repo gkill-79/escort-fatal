@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 
 const router = express.Router();
@@ -33,12 +34,19 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Ce compte est désactivé" });
     }
 
-    // Return the user data needed by NextAuth
+    const token = jwt.sign(
+      { id: user.id, role: user.role, username: user.username },
+      process.env.AUTH_SECRET || "fallback_secret",
+      { expiresIn: "7d" }
+    );
+
+    // Return the user data and token needed by NextAuth
     res.json({
       id: user.id,
       username: user.username,
       email: user.email,
       role: user.role,
+      token,
     });
   } catch (error) {
     console.error("Auth API Error:", error);

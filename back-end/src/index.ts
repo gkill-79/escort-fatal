@@ -64,6 +64,7 @@ app.use("/media", mediaRouter);
 app.use("/admin", adminRouter);
 app.use("/v2/media", mediaV2Router);
 app.use("/v2/online", onlineRouter);
+app.use("/api/online", onlineRouter);
 app.use("/radar", radarRouter);
 app.use("/webrtc", webrtcRouter);
 app.use("/kyc", kycRouter);

@@ -4,6 +4,7 @@ import { fetchApi } from "@/lib/api-client";
 import Link from "next/link";
 import { ShieldAlert, ShieldCheck, Users, MessageSquare, Star, ArrowRight, TrendingUp } from "lucide-react";
 import { RankingScore } from "@/components/features/dashboard/RankingScore";
+import { ToggleOnlineButton } from "@/components/features/profiles/ToggleOnlineButton";
 
 export default async function DashboardOverviewPage() {
   const session = await auth();
@@ -52,6 +53,11 @@ export default async function DashboardOverviewPage() {
           )}
         </div>
       </div>
+
+      {/* --- Online Toggle --- */}
+      {profile.isApproved && (
+        <ToggleOnlineButton initialStatus={profile.isOnline} />
+      )}
 
       {/* ─── Metrics Grid ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
