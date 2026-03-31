@@ -1,4 +1,5 @@
 "use client";
+import { fetchApi } from "@/lib/api-client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -21,19 +22,13 @@ export function ToggleOnlineButton({ initialStatus }: { initialStatus: boolean }
       setIsLoading(true);
       const newStatus = !isOnline;
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/online/toggle`, {
+      await fetchApi("/api/online/toggle", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${(session as any).accessToken}`
         },
         body: JSON.stringify({ isOnline: newStatus }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Erreur lors de la mise à jour");
-      }
 
       setIsOnline(newStatus);
       toast.success(newStatus ? "Vous êtes maintenant en ligne" : "Vous êtes hors ligne");

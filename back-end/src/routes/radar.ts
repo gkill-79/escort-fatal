@@ -58,7 +58,11 @@ router.get("/", async (req, res) => {
 // GET /radar/search?lat=x&lng=y&radiusInMeters=50000&category=ESCORT&isOnline=true&maxPrice=300
 router.get("/search", async (req, res) => {
   try {
-    const { lat, lng, radiusInMeters = 50000, category, isOnline, maxPrice } = req.query;
+    const { 
+      lat, lng, radiusInMeters = 50000, 
+      category, isOnline, maxPrice,
+      ageMin, ageMax, hairColor, origin, isVerified
+    } = req.query;
 
     if (!lat || !lng) {
       return res.status(400).json({ error: "Coordonnées GPS (lat, lng) requises pour le mode Radar." });
@@ -76,6 +80,21 @@ router.get("/search", async (req, res) => {
     }
     if (maxPrice) {
       filterArray.push(`priceFrom <= ${parseInt(maxPrice as string)}`);
+    }
+    if (ageMin) {
+      filterArray.push(`age >= ${parseInt(ageMin as string)}`);
+    }
+    if (ageMax) {
+      filterArray.push(`age <= ${parseInt(ageMax as string)}`);
+    }
+    if (hairColor) {
+      filterArray.push(`hairColor = '${hairColor}'`);
+    }
+    if (origin) {
+      filterArray.push(`origin = '${origin}'`);
+    }
+    if (isVerified === "true") {
+      filterArray.push(`isVerified = true`);
     }
 
     // Requête Meilisearch ultra-rapide

@@ -53,6 +53,7 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ProfileSettingsFormValues>({
     resolver: zodResolver(profileSettingsSchema),
@@ -71,6 +72,8 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
     },
   });
 
+  const selectedServices = watch("services") || [];
+
   const onSubmit = async (data: ProfileSettingsFormValues) => {
     setIsLoading(true);
     setIsSuccess(false);
@@ -78,17 +81,13 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
 
     try {
       // Pass both userId (from defaultValues) and data
-      const res = await fetchApi("/profiles/me", {
+      await fetchApi("/profiles/me", {
         method: "PATCH",
         body: JSON.stringify({ 
           userId: defaultValues.userId, 
           data: data 
         }),
       });
-
-      if (!res.ok) {
-        throw new Error("Une erreur est survenue lors de la sauvegarde.");
-      }
 
       setIsSuccess(true);
       router.refresh();
@@ -122,7 +121,7 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
         <textarea
           {...register("bio")}
           rows={5}
-          className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
+          className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500 placeholder:text-dark-600"
           placeholder="Décrivez-vous en quelques mots..."
         />
         {errors.bio && <p className="text-red-400 text-xs mt-1">{errors.bio.message}</p>}
@@ -132,18 +131,28 @@ export function ProfileSettingsForm({ defaultValues, cities, departments }: Prof
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-white pb-2 border-b border-white/10">Prestations & Services</h3>
         <p className="text-sm text-dark-300 mb-3">Sélectionnez toutes les prestations que vous proposez :</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-           {AVAILABLE_SERVICES.map(service => (
-             <label key={service.id} className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-dark-900 cursor-pointer hover:border-brand-500/50 transition-colors">
-                <input 
-                  type="checkbox" 
-                  value={service.id} 
-                  {...register("services")}
-                  className="w-4 h-4 rounded border-white/20 text-brand-500 bg-dark-950 focus:ring-brand-500 focus:ring-2 focus:ring-offset-dark-900"
-                />
-                <span className="text-sm text-dark-100">{service.label}</span>
-             </label>
-           ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+           {AVAILABLE_SERVICES.map(service => {
+             const isSelected = selectedServices.includes(service.id);
+             return (
+               <label key={service.id} className="cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    value={service.id} 
+                    {...register("services")}
+                    className="sr-only peer"
+                  />
+                  <div className={`
+                    px-3 py-2.5 rounded-xl border text-[11px] font-bold text-center transition-all duration-200
+                    peer-checked:bg-brand-500 peer-checked:border-brand-500 peer-checked:text-white peer-checked:shadow-[0_0_15px_rgba(239,68,68,0.3)]
+                    hover:border-brand-500/50 bg-dark-900 border-white/10 text-dark-300
+                    group-hover:translate-y-[-1px]
+                  `}>
+                    {service.label.split("(")[0].trim()}
+                  </div>
+               </label>
+             );
+           })}
         </div>
       </div>
 
