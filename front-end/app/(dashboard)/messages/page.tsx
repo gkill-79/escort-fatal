@@ -14,13 +14,11 @@ export default async function MessagesPage({ searchParams }: { searchParams: { r
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] pt-6">
-      <div className="h-full bg-dark-900 border border-white/5 shadow-2xl rounded-3xl overflow-hidden shadow-black/50">
-        <ChatLayout 
-          currentUserId={session.user.id} 
-          initialRoomId={searchParams.room} 
-        />
-      </div>
+    <div className="h-[calc(100vh-100px)] -mt-6 -mx-4 md:-mx-8 rounded-xl md:rounded-3xl overflow-hidden bg-dark-900 border border-white/5 shadow-2xl shadow-black/50">
+      <ChatLayout 
+        currentUserId={session.user.id} 
+        initialRoomId={searchParams.room} 
+      />
     </div>
   );
 }

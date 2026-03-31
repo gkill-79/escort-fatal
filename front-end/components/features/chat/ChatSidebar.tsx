@@ -1,5 +1,6 @@
 import { formatTimeAgo } from "@/lib/utils";
-import { User } from "lucide-react";
+import { User, Search } from "lucide-react";
+import { useState } from "react";
 
 interface ChatSidebarProps {
   rooms: any[];
@@ -9,19 +10,37 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ rooms, activeRoomId, setActiveRoomId, currentUserId }: ChatSidebarProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredRooms = rooms.filter(room => {
+    const isMember = currentUserId === room.memberId;
+    const otherName = isMember ? room.profile?.name : room.member?.username;
+    return otherName?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="h-full flex flex-col bg-dark-900 border-r border-white/5">
       <div className="p-4 border-b border-white/5 bg-dark-800/50">
-        <h2 className="text-xl font-bold text-white">Discussions</h2>
+        <h2 className="text-xl font-bold text-white mb-4">Discussions</h2>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+          <input 
+            type="text" 
+            placeholder="Rechercher une discussion..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-dark-950 border border-white/5 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors placeholder:text-dark-500"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto w-full">
-        {rooms.length === 0 ? (
+        {filteredRooms.length === 0 ? (
           <div className="p-6 text-center text-dark-400 text-sm">
-             Vous n'avez aucune conversation active.
+             {searchQuery ? "Aucune conversation trouvée." : "Vous n'avez aucune conversation active."}
           </div>
         ) : (
-          rooms.map(room => {
+          filteredRooms.map(room => {
             // Determine who the "other" person is
             const isMember = currentUserId === room.memberId;
             const otherName = isMember ? room.profile?.name : room.member?.username;
@@ -40,7 +59,7 @@ export function ChatSidebar({ rooms, activeRoomId, setActiveRoomId, currentUserI
               >
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-dark-700 shrink-0 flex items-center justify-center">
                   {otherAvatar ? (
-                    <img src={otherAvatar} alt={otherName} className="w-full h-full object-cover" />
+                    <img src={otherAvatar} alt={otherName || ""} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-6 h-6 text-dark-400" />
                   )}

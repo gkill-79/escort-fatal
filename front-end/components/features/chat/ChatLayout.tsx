@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatWindow } from "./ChatWindow";
 import { VideoCallOverlay } from "./VideoCallOverlay";
@@ -155,10 +155,12 @@ export function ChatLayout({ currentUserId, initialRoomId }: ChatLayoutProps) {
              }}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-dark-500">
-             <div className="text-4xl mb-4">💬</div>
-             <p className="font-semibold text-lg">Vos Messages</p>
-             <p className="text-sm mt-1">Sélectionnez une conversation pour commencer</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-dark-500 bg-dark-900/50">
+            <div className="w-20 h-20 bg-dark-900 rounded-full flex items-center justify-center mb-4 border border-white/5 shadow-inner">
+              <MessageSquare className="w-10 h-10 text-dark-400" />
+            </div>
+            <h3 className="text-xl font-medium text-white mb-2">Vos Messages</h3>
+            <p className="text-sm">Sélectionnez une conversation pour commencer à discuter.</p>
           </div>
         )}
       </div>
