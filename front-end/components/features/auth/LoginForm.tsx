@@ -8,6 +8,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Veuillez entrer votre email ou pseudo"),
@@ -100,9 +101,9 @@ export function LoginForm() {
           <input type="checkbox" className="rounded border-white/10 bg-dark-900 text-brand-500 focus:ring-brand-500" />
           <span className="text-sm text-dark-300 group-hover:text-white transition-colors">Se souvenir de moi</span>
         </label>
-        <a href="#" className="text-sm text-brand-400 hover:text-brand-300 hover:underline">
+        <Link href="/forgot-password" className="text-sm text-brand-400 hover:text-brand-300 hover:underline">
           Mot de passe oublié ?
-        </a>
+        </Link>
       </div>
 
       <Button type="submit" fullWidth disabled={isLoading} className="mt-6">

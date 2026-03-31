@@ -1,14 +1,13 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-
-// We don't need prisma or bcrypt here anymore!
-// import { fetchApi } from "./api-client"; // This might cause issues if not absolute or if it uses env vars differently
-// Instead, I'll use a local fetch with the server-side API URL
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   providers: [
     CredentialsProvider({
@@ -23,25 +22,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         try {
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-          const res = await fetch(`${API_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              identifier: credentials.identifier,
-              password: credentials.password,
-            }),
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: credentials.identifier as string },
+                { username: credentials.identifier as string }
+              ]
+            },
           });
 
-          if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || "Identifiants incorrects");
+          if (!user || !user.passwordHash) {
+            throw new Error("Aucun compte associé à cet email ou pseudo");
           }
 
-          const user = await res.json();
-          return user;
+          const isPasswordValid = await bcrypt.compare(credentials.password as string, user.passwordHash);
+
+          if (!isPasswordValid) {
+            throw new Error("Mot de passe incorrect");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.username,
+            role: user.role,
+            username: user.username,
+          } as any;
         } catch (error: any) {
-          throw new Error(error.message || "Erreur de connexion au serveur");
+          throw new Error(error.message || "Erreur lors de l'authentification");
         }
       },
     }),
@@ -52,16 +60,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as any).role;
         token.username = (user as any).username;
-        token.accessToken = (user as any).token; // Capture token from backend
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as any;
-        session.user.username = token.username as string;
-        (session as any).accessToken = token.accessToken; // Expose to client
+        (session.user as any).role = token.role;
+        (session.user as any).username = token.username;
       }
       return session;
     },

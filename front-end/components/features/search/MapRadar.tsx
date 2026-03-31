@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import Link from "next/link";
 import { Star, Flame, MapPin } from "lucide-react";
 import { formatPriceRange } from "@/lib/utils";
