@@ -7,12 +7,23 @@ import { toast } from "react-hot-toast";
 
 interface CheckoutButtonProps {
   serviceId?: string;
-  escortId: string;
+  escortId?: string;
   price: number;
-  title: string;
+  title?: string;
+  packId?: string;
+  credits?: number;
+  isPopular?: boolean;
 }
 
-export function CheckoutButton({ serviceId = "default-service", escortId, price, title }: CheckoutButtonProps) {
+export function CheckoutButton({ 
+  serviceId, 
+  escortId, 
+  price, 
+  title, 
+  packId, 
+  credits, 
+  isPopular 
+}: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const onCheckout = async (e: React.MouseEvent) => {
@@ -30,6 +41,8 @@ export function CheckoutButton({ serviceId = "default-service", escortId, price,
           escortId,
           price,
           title,
+          packId,
+          credits,
         }),
       });
 
@@ -61,16 +74,16 @@ export function CheckoutButton({ serviceId = "default-service", escortId, price,
     <Button 
       onClick={onCheckout} 
       disabled={isLoading || !price}
-      className="flex items-center justify-center gap-2 min-w-[140px]"
-      variant="primary"
-      size="sm"
+      className={credits ? "w-full" : "flex items-center justify-center gap-2 min-w-[140px]"}
+      variant={isPopular ? "primary" : (credits ? "outline" : "primary")}
+      size={credits ? "lg" : "sm"}
     >
       {isLoading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
-        <ShoppingCart className="w-4 h-4" />
+        !credits && <ShoppingCart className="w-4 h-4" />
       )}
-      {price ? `Réserver (${price}€)` : "Sur demande"}
+      {isLoading ? "Chargement..." : (credits ? "Choisir ce pack" : (price ? `Réserver (${price}€)` : "Sur demande"))}
     </Button>
   );
 }

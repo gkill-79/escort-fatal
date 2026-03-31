@@ -11,10 +11,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { serviceId, escortId, price, title } = body;
+    const { serviceId, escortId, price, title, packId, credits } = body;
 
-    if (!price || !escortId) {
-      return NextResponse.json({ error: "Données manquantes (prix ou escortId)" }, { status:400 });
+    if (!price || (!escortId && !packId)) {
+      return NextResponse.json({ error: "Données manquantes (prix et identifiant)" }, { status:400 });
     }
 
     // fallback simulation if Stripe is not configured
@@ -24,30 +24,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: successUrl, simulated: true });
     }
 
+    const line_items = [
+      {
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: packId ? `Pack de ${credits} Crédits` : `Prestation: ${title || 'Service'}`,
+            description: packId 
+              ? "Crédits à utiliser sur la plateforme Escorte Fatal" 
+              : `Réservation avec l'escort ID: ${escortId}`,
+          },
+          unit_amount: Math.round(price * 100), 
+        },
+        quantity: 1,
+      },
+    ];
+
     // Créer la session Stripe
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: `Prestation: ${title || 'Service'}`,
-              description: `Réservation avec l'escort ID: ${escortId}`,
-            },
-            unit_amount: Math.round(price * 100), 
-          },
-          quantity: 1,
-        },
-      ],
+      line_items,
       metadata: {
         userId: session.user.id,
-        escortId,
-        serviceId: serviceId || "default",
+        escortId: escortId || "",
+        serviceId: serviceId || "",
+        packId: packId || "",
+        credits: credits?.toString() || "",
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/escorts/${escortId}`,
+      cancel_url: packId 
+        ? `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/member/credits`
+        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/escorts/${escortId}`,
     });
 
     return NextResponse.json({ url: stripeSession.url });

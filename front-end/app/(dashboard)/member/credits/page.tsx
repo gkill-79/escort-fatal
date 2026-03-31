@@ -1,5 +1,7 @@
 import { Coins, Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { CheckoutButton } from "@/components/features/checkout/CheckoutButton";
+import Link from "next/link";
 
 export const metadata = {
   title: "Acheter des Crédits | Escorte Fatal",
@@ -67,13 +69,12 @@ export default function CreditsPage() {
               </div>
             </div>
 
-            <Button 
-               fullWidth
-               className={pack.popular ? "bg-brand-500 hover:bg-brand-600 shadow-lg shadow-brand-500/20" : "bg-white/10 hover:bg-white/20"}
-            >
-              <Coins className="w-4 h-4 mr-2" />
-              Choisir ce pack
-            </Button>
+            <CheckoutButton 
+               packId={pack.id}
+               price={pack.price}
+               credits={pack.credits}
+               isPopular={pack.popular}
+            />
           </div>
         ))}
       </div>
@@ -88,9 +89,11 @@ export default function CreditsPage() {
             En tant qu'escorte, vous pouvez utiliser vos crédits pour booster vos annonces et apparaître en haut des résultats de recherche.
           </p>
         </div>
-        <Button variant="outline" className="shrink-0 border-white/10 hover:bg-white/5">
-          En savoir plus
-        </Button>
+        <Link href="/member/vip">
+          <Button variant="outline" className="shrink-0 border-white/10 hover:bg-white/5">
+            En savoir plus
+          </Button>
+        </Link>
       </div>
     </div>
   );
