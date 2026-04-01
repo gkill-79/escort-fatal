@@ -22,6 +22,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [userType, setUserType] = useState<"member" | "escort">("member");
 
   const {
     register,
@@ -64,6 +65,27 @@ export function LoginForm() {
           {error}
         </div>
       )}
+
+      <div className="flex gap-2 mb-6 p-1 bg-dark-900 border border-white/5 rounded-xl">
+        <button
+          type="button"
+          onClick={() => setUserType("member")}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+            userType === "member" ? "bg-brand-500 text-white shadow-lg" : "text-dark-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          Membre
+        </button>
+        <button
+          type="button"
+          onClick={() => setUserType("escort")}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+            userType === "escort" ? "bg-brand-500 text-white shadow-lg" : "text-dark-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          Escorte
+        </button>
+      </div>
 
       <div>
         <label className="block text-sm text-dark-300 font-medium mb-1.5">Email ou Pseudo</label>

@@ -114,6 +114,7 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <h2 className="text-2xl font-extrabold text-center text-white mb-6">Ouvrir un compte escorte</h2>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm">
           {error}

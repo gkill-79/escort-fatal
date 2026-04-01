@@ -81,6 +81,7 @@ export function RegisterMemberForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <h2 className="text-2xl font-bold text-center text-white mb-2 hidden">Créer un compte membre</h2>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm">
           {error}
@@ -138,7 +139,7 @@ export function RegisterMemberForm() {
       </div>
 
       <Button type="submit" fullWidth className="mt-2" disabled={isLoading}>
-        {isLoading ? "Inscription..." : "Créer mon compte Membre"}
+        {isLoading ? "Inscription..." : "S'inscrire"}
       </Button>
 
       <div className="text-center mt-4 text-sm text-dark-400">

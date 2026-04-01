@@ -25,10 +25,10 @@ export default function RegisterMemberPage() {
         </div>
         
         <h2 className="mt-2 text-center text-3xl font-extrabold text-white">
-          Accès Membre
+          Créer un compte membre
         </h2>
         <p className="mt-2 text-center text-sm text-dark-300">
-          Vous êtes escorte professionnelle ?{" "}
+          Vous êtes professionnelle ?{" "}
           <Link href="/register/escort" className="font-medium text-brand-400 hover:text-brand-300 transition-colors">
             Publier une annonce
           </Link>
