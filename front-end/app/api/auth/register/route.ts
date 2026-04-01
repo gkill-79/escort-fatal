@@ -12,20 +12,28 @@ export async function POST(req: Request) {
     const password = formData.get('password') as string;
     const username = formData.get('username') as string;
     const selfie = formData.get('selfie') as File;
+    const idCard = formData.get('idCard') as File;
 
-    if (!email || !password || !username || !selfie) {
+    if (!email || !password || !username || !selfie || !idCard) {
       return NextResponse.json({ 
-        message: "Données incomplètes. Le selfie est obligatoire pour s'inscrire." 
+        message: "Données incomplètes. La pièce d'identité et le selfie sont obligatoires." 
       }, { status: 400 });
     }
 
-    // --- SECURE S3 UPLOAD FOR MEMBER SELFIE ---
-    const selfieBuffer = Buffer.from(await selfie.arrayBuffer());
+    // --- SECURE S3 UPLOAD FOR MEMBER SELFIE & ID ---
     const secureId = crypto.randomBytes(16).toString('hex');
+    
+    // Selfie
+    const selfieBuffer = Buffer.from(await selfie.arrayBuffer());
     const selfieFileName = `members/selfies/${secureId}_${selfie.name}`;
-
-    console.log("Upload du selfie membre vers le coffre-fort AWS S3...");
+    console.log("Upload du selfie membre vers AWS S3...");
     const selfieS3Key = await uploadToPrivateVault(selfieBuffer, selfieFileName, selfie.type);
+
+    // ID Card
+    const idCardBuffer = Buffer.from(await idCard.arrayBuffer());
+    const idFileName = `members/ids/${secureId}_${idCard.name}`;
+    console.log("Upload de la pièce d'identité membre vers AWS S3...");
+    const idS3Key = await uploadToPrivateVault(idCardBuffer, idFileName, idCard.type);
 
     const passwordHash = await bcrypt.hash(password, 12);
 
@@ -59,8 +67,8 @@ export async function POST(req: Request) {
            userId: newUser.id,
            encryptedRealName: "MEMBER_VERIFICATION", // Placeholder as members don't need 2257 real names
            encryptedDob: "MEMBER_VERIFICATION",
-           idDocumentS3Key: "NONE", // Members only provide a live selfie
-           selfieS3Key: selfieS3Key,
+           idDocumentS3Key: idS3Key, // Real physical ID Card
+           selfieS3Key: selfieS3Key, // Live selfie
            status: "PENDING", // Wait for manual or AI validation
            verificationId: "mem_req_" + Math.random().toString(36).substring(7),
          }

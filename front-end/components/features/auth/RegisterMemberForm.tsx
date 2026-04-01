@@ -30,6 +30,7 @@ export function RegisterMemberForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selfie, setSelfie] = useState<File | null>(null);
+  const [idCard, setIdCard] = useState<File | null>(null);
 
   const {
     register,
@@ -40,8 +41,8 @@ export function RegisterMemberForm() {
   });
 
   const onSubmit = async (data: RegisterMemberFormValues) => {
-    if (!selfie) {
-      setError("Le selfie est obligatoire pour s'inscrire et certifier votre compte membre.");
+    if (!selfie || !idCard) {
+      setError("La pièce d'identité et le selfie sont obligatoires pour certifier votre compte membre.");
       return;
     }
 
@@ -55,6 +56,7 @@ export function RegisterMemberForm() {
       formData.append("password", data.password);
       formData.append("role", "MEMBER");
       formData.append("selfie", selfie);
+      formData.append("idCard", idCard);
 
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -164,6 +166,34 @@ export function RegisterMemberForm() {
         {errors.confirmPassword && (
           <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
         )}
+      </div>
+
+      {/* ID Card Upload */}
+      <div className="space-y-2 border-t border-white/10 pt-6 mt-6">
+        <label className="block text-sm font-bold text-brand-500 uppercase tracking-wider mb-2">
+          Pièce d'identité (Recto/Verso) *
+        </label>
+        <p className="text-xs text-dark-300 mb-4">
+          Un document d'identité officiel est requis pour valider votre majorité.
+        </p>
+        <label 
+          htmlFor="idCard"
+          className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-dark-900"
+        >
+          <span className="text-xs text-brand-400 font-bold mb-1">
+            {idCard ? "Document sélectionné" : "Cliquez pour uploader (PDF/Image)"}
+          </span>
+          <span className="text-xs text-dark-400">
+            {idCard ? idCard.name : "Formats acceptés : JPG, PNG, PDF"}
+          </span>
+        </label>
+        <input
+          type="file"
+          id="idCard"
+          accept="image/*,.pdf"
+          onChange={(e) => setIdCard(e.target.files?.[0] || null)}
+          className="hidden"
+        />
       </div>
 
       {/* Selfie Capture */}
