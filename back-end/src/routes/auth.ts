@@ -72,6 +72,22 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Email ou pseudo déjà utilisé" });
     }
 
+    let resolvedCityId = undefined;
+    if (cityId) {
+      if (typeof cityId === 'number') {
+        resolvedCityId = cityId;
+      } else if (!isNaN(parseInt(cityId, 10))) {
+        resolvedCityId = parseInt(cityId, 10);
+      } else {
+        const cityMatch = await prisma.city.findFirst({
+          where: { name: { equals: cityId, mode: 'insensitive' } }
+        });
+        if (cityMatch) {
+          resolvedCityId = cityMatch.id;
+        }
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -87,7 +103,7 @@ router.post("/register", async (req, res) => {
             name: username,
             slug: username.toLowerCase().replace(/ /g, "-"),
             gender: gender || "FEMALE",
-            cityId: cityId || undefined,
+            cityId: resolvedCityId,
             status: "PENDING",
             isApproved: false,
             isActive: true,
