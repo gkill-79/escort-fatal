@@ -7,6 +7,7 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff } from "lucide-react";
+import { SelfieCapture } from "./SelfieCapture";
 
 const registerMemberSchema = z
   .object({
@@ -28,6 +29,7 @@ export function RegisterMemberForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [selfie, setSelfie] = useState<File | null>(null);
 
   const {
     register,
@@ -38,19 +40,25 @@ export function RegisterMemberForm() {
   });
 
   const onSubmit = async (data: RegisterMemberFormValues) => {
+    if (!selfie) {
+      setError("Le selfie est obligatoire pour s'inscrire et certifier votre compte membre.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
+      const formData = new FormData();
+      formData.append("username", data.username);
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formData.append("role", "MEMBER");
+      formData.append("selfie", selfie);
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          role: "MEMBER",
-        }),
+        body: formData,
       });
 
       const json = await res.json();
@@ -156,6 +164,20 @@ export function RegisterMemberForm() {
         {errors.confirmPassword && (
           <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
         )}
+      </div>
+
+      {/* Selfie Capture */}
+      <div className="space-y-2 border-t border-white/10 pt-6 mt-6">
+        <label className="block text-sm font-bold text-brand-500 uppercase tracking-wider mb-2">
+          Vérification d'identité (Selfie)
+        </label>
+        <p className="text-xs text-dark-300 mb-4">
+          Pour garantir la sécurité extrême de notre communauté et éviter les faux comptes, vous devez prouver que vous êtes humain en prenant un selfie instantané en direct.
+        </p>
+        
+        <SelfieCapture 
+          onCapture={(file) => setSelfie(file)} 
+        />
       </div>
 
       <Button type="submit" fullWidth className="mt-2" disabled={isLoading}>
