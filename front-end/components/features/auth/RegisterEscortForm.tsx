@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { fetchApi } from "@/lib/api-client";
 import { Eye, EyeOff } from "lucide-react";
+import { SelfieCapture } from "./SelfieCapture";
 
 // Assuming a basic Input component exists or we can just use standard HTML inputs styled with Tailwind
 // We'll use standard inputs for simplicity and robustness if a custom one isn't fully robust.
@@ -280,22 +281,7 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
 
             <div>
               <label className="block text-sm text-dark-300 font-medium mb-2">Selfie (Liveness)</label>
-              <div className="relative group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  onChange={(e) => setLiveSelfie(e.target.files?.[0] || null)}
-                  className="hidden"
-                  id="selfie-upload"
-                />
-                <label 
-                  htmlFor="selfie-upload"
-                  className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-white/5"
-                >
-                  <span className="text-xs text-dark-400">{liveSelfie ? liveSelfie.name : "Prendre un selfie"}</span>
-                </label>
-              </div>
+              <SelfieCapture onCapture={(file) => setLiveSelfie(file)} />
             </div>
           </div>
         </div>
