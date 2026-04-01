@@ -13,6 +13,29 @@ import { SelfieCapture } from "./SelfieCapture";
 // Assuming a basic Input component exists or we can just use standard HTML inputs styled with Tailwind
 // We'll use standard inputs for simplicity and robustness if a custom one isn't fully robust.
 
+const MAJOR_CITIES = [
+  "Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes", "Montpellier", "Strasbourg", "Bordeaux", "Lille", 
+  "Rennes", "Reims", "Toulon", "Saint-Étienne", "Le Havre", "Grenoble", "Dijon", "Angers", "Villeurbanne", "Saint-Denis", 
+  "Nîmes", "Clermont-Ferrand", "Aix-en-Provence", "Le Mans", "Brest", "Tours", "Amiens", "Limoges", "Annecy", "Perpignan", 
+  "Boulogne-Billancourt", "Metz", "Besançon", "Orléans", "Saint-Denis (La Réunion)", "Argenteuil", "Rouen", "Mulhouse", "Montreuil", "Caen", 
+  "Nancy", "Saint-Paul", "Roubaix", "Tourcoing", "Nanterre", "Avignon", "Vitry-sur-Seine", "Créteil", "Dunkerque", "Poitiers", 
+  "Asnières-sur-Seine", "Courbevoie", "Versailles", "Colombes", "Aubervilliers", "Aulnay-sous-Bois", "Saint-Pierre", "Rueil-Malmaison", "Cherbourg-en-Cotentin", "Pau", 
+  "Champigny-sur-Marne", "Le Tampon", "Béziers", "La Rochelle", "Antibes", "Saint-Maur-des-Fossés", "Cannes", "Colmar", "Mérignac", "Saint-Nazaire", 
+  "Drancy", "Issy-les-Moulineaux", "Ajaccio", "Noisy-le-Grand", "Bourges", "Levallois-Perret", "La Seyne-sur-Mer", "Quimper", "Vénissieux", "Antony", 
+  "Villeneuve-d'Ascq", "Neuilly-sur-Seine", "Troyes", "Pantin", "Niort", "Chambéry", "Sarcelles", "Lorient", "Beauvais", "Le Blanc-Mesnil", 
+  "Saint-André", "Maisons-Alfort", "Meaux", "Narbonne", "Chelles", "Hyères", "Évry-Courcouronnes", "Villejuif", "Cholet", "Pessac", 
+  "Vannes", "Fréjus", "Arles", "Sartrouville", "Bondy", "Fontenay-sous-Bois", "Clamart", "Sevran", "Saint-Quentin", "Bayonne", 
+  "Ivry-sur-Seine", "Épinay-sur-Seine", "Corbeil-Essonnes", "Saint-Ouen-sur-Seine", "Brive-la-Gaillarde", "Cavaillon", "Massy", "Rezé", "Albi", "Vincennes", 
+  "Suresnes", "Carcassonne", "Martigues", "Saint-Malo", "Aubagne", "Belfort", "Blois", "Montrouge", "Châteauroux", "Saint-Priest", 
+  "Meudon", "Saint-Herblain", "Saint-Brieuc", "Valence", "Puteaux", "Vigneux-sur-Seine", "Thionville", "Châlons-en-Champagne", "Vichy", "Gennevilliers", 
+  "Alfortville", "Livry-Gargan", "Angoulême", "Istres", "Saint-Laurent-du-Maroni", "Calais", "Salon-de-Provence", "Mantes-la-Jolie", "Rosny-sous-Bois", "Saint-Germain-en-Laye", 
+  "Tarbes", "Arras", "Sète", "Castres", "Bron", "Bastia", "Bagneux", "Gap", "Noisy-le-Sec", "Thonon-les-Bains", 
+  "Melun", "Garges-lès-Gonesse", "Vierzon", "Saint-Egrève", "Saint-Cloud", "Douai", "Wattrelos", "Chaville", "Le Cannet", "Saint-Benoît", 
+  "Bagnolet", "Marcq-en-Barœul", "Anglet", "Châtillon", "Villepinte", "Savigny-sur-Orge", "Grasse", "Poissy", "Échirolles", "La Courneuve", 
+  "Conflans-Sainte-Honorine", "Villefranche-sur-Saône", "Auxerre", "Sainte-Geneviève-des-Bois", "Franconville", "Draguignan", "Plaisir", "Neuilly-sur-Marne", "Montluçon", "Athis-Mons", 
+  "Montélimar", "Vallauris", "Pontault-Combault", "Saint-Chamond", "Haguenau", "Six-Fours-les-Plages", "Macon", "Saint-Martin-d'Hères", "Bourg-en-Bresse", "Creil"
+];
+
 const registerSchema = z
   .object({
     username: z.string().min(3, "Le pseudo doit contenir au moins 3 caractères"),
@@ -169,12 +192,12 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
           <label className="block text-sm text-dark-300 font-medium mb-1.5">Ville Principale (Optionnel)</label>
           <select
             {...register("cityId")}
-            className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
+            className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500 appearance-none"
           >
-            <option value="">Sélectionnez...</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
+            <option value="">Sélectionnez une ville...</option>
+            {MAJOR_CITIES.sort().map((city) => (
+              <option key={city} value={city}>
+                {city}
               </option>
             ))}
           </select>

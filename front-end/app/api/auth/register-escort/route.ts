@@ -66,6 +66,21 @@ export async function POST(req: Request) {
         throw new Error("L'adresse email ou le pseudo est déjà utilisé.");
       }
 
+      let resolvedCityId = undefined;
+      if (cityId) {
+        if (!isNaN(parseInt(cityId, 10))) {
+          resolvedCityId = parseInt(cityId, 10);
+        } else {
+          // Si on reçoit le nom formaté en String via le sélecteur Front
+          const cityMatch = await tx.city.findFirst({
+            where: { name: { equals: cityId, mode: 'insensitive' } }
+          });
+          if (cityMatch) {
+             resolvedCityId = cityMatch.id;
+          }
+        }
+      }
+
       // Create the User and Profile
       const newUser = await tx.user.create({
         data: {
@@ -79,7 +94,7 @@ export async function POST(req: Request) {
               name: username,
               slug: username.toLowerCase().replace(/\s+/g, '-'),
               gender: gender as any,
-              cityId: cityId ? parseInt(cityId, 10) : undefined,
+              cityId: resolvedCityId,
               isVerified: true, // Verified since KYC passed
               status: "APPROVED",
               isApproved: true,
