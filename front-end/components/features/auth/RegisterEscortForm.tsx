@@ -7,6 +7,7 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { fetchApi } from "@/lib/api-client";
+import { Eye, EyeOff } from "lucide-react";
 
 // Assuming a basic Input component exists or we can just use standard HTML inputs styled with Tailwind
 // We'll use standard inputs for simplicity and robustness if a custom one isn't fully robust.
@@ -37,6 +38,7 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [idDocumentFront, setIdDocumentFront] = useState<File | null>(null);
   const [liveSelfie, setLiveSelfie] = useState<File | null>(null);
@@ -181,24 +183,42 @@ export function RegisterEscortForm({ cities }: { cities: { id: number; name: str
       {/* Password */}
       <div>
         <label className="block text-sm text-dark-300 font-medium mb-1.5">Mot de passe</label>
-        <input
-          {...register("password")}
-          type="password"
-          className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
-          placeholder="8 caractères minimum"
-        />
+        <div className="relative">
+          <input
+            {...register("password")}
+            type={showPassword ? "text" : "password"}
+            className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-brand-500"
+            placeholder="8 caractères minimum"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
         {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
       {/* Confirm Password */}
       <div>
         <label className="block text-sm text-dark-300 font-medium mb-1.5">Confirmer le mot de passe</label>
-        <input
-          {...register("confirmPassword")}
-          type="password"
-          className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500"
-          placeholder="Retapez votre mot de passe"
-        />
+        <div className="relative">
+          <input
+            {...register("confirmPassword")}
+            type={showPassword ? "text" : "password"}
+            className="w-full bg-dark-900 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-brand-500"
+            placeholder="Retapez votre mot de passe"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
         {errors.confirmPassword && (
           <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
         )}

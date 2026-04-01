@@ -50,7 +50,11 @@ export function LoginForm() {
       // Force router refresh to load session state properly
       router.refresh();
       // Redirect to home/dashboard
-      router.push("/");
+      if (userType === "escort") {
+        router.push("/dashboard");
+      } else {
+        router.push("/");
+      }
     } catch (err: any) {
       setError(err.message || "Identifiants invalides");
     } finally {
