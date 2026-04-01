@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 export default function RegisterMemberPage() {
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background radial gradient focusing on member simplicity */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,100,100,0.05)_0%,transparent_50%)]" />
+      {/* Background elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(230,57,70,0.1)_0%,transparent_50%)]" />
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center mb-6">

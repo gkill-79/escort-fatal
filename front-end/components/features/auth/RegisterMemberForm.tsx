@@ -168,46 +168,45 @@ export function RegisterMemberForm() {
         )}
       </div>
 
-      {/* ID Card Upload */}
-      <div className="space-y-2 border-t border-white/10 pt-6 mt-6">
-        <label className="block text-sm font-bold text-brand-500 uppercase tracking-wider mb-2">
-          Pièce d'identité (Recto/Verso) *
-        </label>
-        <p className="text-xs text-dark-300 mb-4">
-          Un document d'identité officiel est requis pour valider votre majorité.
+      <div className="border-t border-white/10 pt-6 mt-6">
+        <h3 className="text-lg font-bold text-brand-400 mb-2 flex items-center gap-2">
+          <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse"></span>
+          Vérification d'Identité (Sécurisé & Confidentiel)
+        </h3>
+        <p className="text-xs text-dark-400 mb-4 italic">
+          Ce processus garantit la qualité de la plateforme et empêche les faux comptes. Vos documents sont traités de manière strictement sécurisée.
         </p>
-        <label 
-          htmlFor="idCard"
-          className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-dark-900"
-        >
-          <span className="text-xs text-brand-400 font-bold mb-1">
-            {idCard ? "Document sélectionné" : "Cliquez pour uploader (PDF/Image)"}
-          </span>
-          <span className="text-xs text-dark-400">
-            {idCard ? idCard.name : "Formats acceptés : JPG, PNG, PDF"}
-          </span>
-        </label>
-        <input
-          type="file"
-          id="idCard"
-          accept="image/*,.pdf"
-          onChange={(e) => setIdCard(e.target.files?.[0] || null)}
-          className="hidden"
-        />
-      </div>
 
-      {/* Selfie Capture */}
-      <div className="space-y-2 border-t border-white/10 pt-6 mt-6">
-        <label className="block text-sm font-bold text-brand-500 uppercase tracking-wider mb-2">
-          Vérification d'identité (Selfie)
-        </label>
-        <p className="text-xs text-dark-300 mb-4">
-          Pour garantir la sécurité extrême de notre communauté et éviter les faux comptes, vous devez prouver que vous êtes humain en prenant un selfie instantané en direct.
-        </p>
-        
-        <SelfieCapture 
-          onCapture={(file) => setSelfie(file)} 
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-dark-300 font-medium mb-2">Pièce d'identité (Recto/Verso)</label>
+            <div className="relative group">
+              <input
+                type="file"
+                id="idCard"
+                accept="image/*,.pdf"
+                onChange={(e) => setIdCard(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+              <label 
+                htmlFor="idCard"
+                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-white/10 rounded-xl hover:border-brand-500/50 cursor-pointer transition-all bg-white/5"
+              >
+                <span className="text-xs text-brand-400 font-bold mb-1">
+                  {idCard ? "Document ajouté" : "Cliquez pour uploader"}
+                </span>
+                <span className="text-xs text-dark-400">
+                  {idCard ? idCard.name : "(PDF/Image)"}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-dark-300 font-medium mb-2">Selfie (Liveness)</label>
+            <SelfieCapture onCapture={(file) => setSelfie(file)} />
+          </div>
+        </div>
       </div>
 
       <Button type="submit" fullWidth className="mt-2" disabled={isLoading}>
